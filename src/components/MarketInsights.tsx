@@ -28,9 +28,12 @@ import {
   TrendingUp,
   TrendingUpIcon,
   Users,
+  Download,
+  FileText,
 } from 'lucide-react';
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
+import { generateCompetitiveTechPDF, generateSimplePDF } from '@/lib/pdf-generator';
 
 interface MarketInsightsProps {
   marketGaps: (MarketGap | string)[];
@@ -127,6 +130,36 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     d >= 8 ? 'text-red-600' : d >= 6 ? 'text-orange-600' : d >= 4 ? 'text-yellow-600' : 'text-green-600';
   const getGapSizeColor = (s: number) =>
     s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
+
+  // Generate PDF for competitive tech development
+  const handleGeneratePDF = () => {
+    const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
+    
+    if (processedGaps.length === 0) {
+      alert('No market gaps available for PDF generation');
+      return;
+    }
+
+    const totalMarketSize = processedGaps.reduce((sum, gap) => {
+      const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
+      return sum + parseFloat(marketSize || '0');
+    }, 0);
+
+    const content = {
+      title: 'Competitive Tech Development Strategy',
+      marketGaps: processedGaps,
+      totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
+      generatedDate: new Date().toLocaleDateString()
+    };
+
+    // Try to use the advanced PDF generator first, fallback to simple HTML
+    try {
+      generateCompetitiveTechPDF(content);
+    } catch (error) {
+      console.warn('Advanced PDF generation failed, using fallback:', error);
+      generateSimplePDF(content);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -380,19 +413,90 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
       )}
 
       {/* Competitor Companies */}
-      {/** Companies by industry **/}
-      {(
-        (relevantJobs.length ? relevantJobs : allJobs)
-          .some((j) => j.competitors.length > 0)
+      {/** Companies by industry - only show relevant to search **/}
+      {relevantJobs.length > 0 && (
+        (relevantJobs).some((j) => j.competitors.length > 0)
       ) && (
         <section className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <Building className="h-5 w-5 text-green-600" /> Competitor Companies
-            {relevantJobs.length > 0 && '(Based on Search)'}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Building className="h-5 w-5 text-green-600" /> Competitor Companies
+              <span className="text-sm text-muted-foreground">(Based on Search)</span>
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
+              Download Tech Strategy
+            </Button>
+          </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(
-              (relevantJobs.length ? relevantJobs : allJobs)
+              relevantJobs
+                .reduce((map, job) => {
+                  (map[job.industry] ??= []).push(...job.competitors);
+                  return map;
+                }, {} as Record<string, Competitor[]>)
+            ).map(([industry, comps]) => {
+              const unique = Object.values(
+                comps.reduce((m, c) => ({ ...m, [c.name]: c }), {})
+              ) as Competitor[];
+              return (
+                <div key={industry}>
+                  <h4 className="font-bold text-lg mb-2">{industry}</h4>
+                  <div className="grid gap-4">
+                    {unique.map((c, idx) => (
+                      <Card key={idx} className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-semibold">{c.name}</div>
+                          <Badge variant="outline" className="text-xs">
+                            {c.marketShare ?? 'N/A'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">{c.description}</p>
+                        <div className="text-xs text-green-600 mb-2">
+                          <strong>Strengths:</strong>{' '}{c.strengths.slice(0,2).join(', ')}
+                        </div>
+                        <div className="text-xs text-red-600">
+                          <strong>Weaknesses:</strong>{' '}{c.weaknesses.slice(0,2).join(', ')}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Show all competitors only when no search is active */}
+      {relevantJobs.length === 0 && (
+        (allJobs).some((j) => j.competitors.length > 0)
+      ) && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Building className="h-5 w-5 text-green-600" /> All Competitor Companies
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
+              Download Tech Strategy
+            </Button>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(
+              allJobs
                 .reduce((map, job) => {
                   (map[job.industry] ??= []).push(...job.competitors);
                   return map;
