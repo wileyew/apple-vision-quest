@@ -1,4 +1,5 @@
 import type { MarketGap, MVPProposal } from './openai';
+import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 
 export interface PDFContent {
   title: string;
@@ -7,6 +8,8 @@ export interface PDFContent {
   generatedDate: string;
   mvpProposal?: MVPProposal;
   searchQuery?: string;
+  relatedOpportunities?: JobToBeDone[];
+  competitorCompanies?: Competitor[];
 }
 
 export const generateCompetitiveTechPDF = (content: PDFContent) => {
@@ -324,6 +327,99 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
           </ul>
         </div>
         
+        ${content.relatedOpportunities && content.relatedOpportunities.length > 0 ? `
+        <div class="page-break"></div>
+        
+        <div class="header">
+          <h1>Related Market Opportunities</h1>
+          <div class="subtitle">Identified opportunities aligned with market analysis</div>
+        </div>
+        
+        <div class="gap-section">
+          <div class="grid gap-4">
+            ${content.relatedOpportunities.map((opportunity, index) => `
+              <div class="gap-card">
+                <div class="gap-header">
+                  <h3 class="gap-title">${opportunity.title}</h3>
+                  <div class="gap-number">#${index + 1}</div>
+                </div>
+                
+                <p class="gap-description">${opportunity.description}</p>
+                
+                <div class="gap-metrics">
+                  <div class="gap-metric">
+                    <div class="gap-metric-value">${opportunity.industry}</div>
+                    <div class="gap-metric-label">Industry</div>
+                  </div>
+                  <div class="gap-metric">
+                    <div class="gap-metric-value">${opportunity.profitPotential.revenue}</div>
+                    <div class="gap-metric-label">Revenue Potential</div>
+                  </div>
+                  <div class="gap-metric">
+                    <div class="gap-metric-value">${opportunity.competitionLevel}</div>
+                    <div class="gap-metric-label">Competition Level</div>
+                  </div>
+                  <div class="gap-metric">
+                    <div class="gap-metric-value">${opportunity.marketSize}</div>
+                    <div class="gap-metric-label">Market Size</div>
+                  </div>
+                </div>
+                
+                <div class="gap-insights">
+                  <h4>Pain Points</h4>
+                  <div class="insight-tags">
+                    ${opportunity.painPoints.map(point => `<span class="insight-tag">${point}</span>`).join('')}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
+        ${content.competitorCompanies && content.competitorCompanies.length > 0 ? `
+        <div class="page-break"></div>
+        
+        <div class="header">
+          <h1>Competitive Landscape Analysis</h1>
+          <div class="subtitle">Key competitors and market positioning</div>
+        </div>
+        
+        <div class="gap-section">
+          <div class="grid gap-4">
+            ${content.competitorCompanies.map((competitor, index) => `
+              <div class="gap-card">
+                <div class="gap-header">
+                  <h3 class="gap-title">${competitor.name}</h3>
+                  <div class="gap-number">#${index + 1}</div>
+                </div>
+                
+                <p class="gap-description">${competitor.description}</p>
+                
+                <div class="gap-metrics">
+                  <div class="gap-metric">
+                    <div class="gap-metric-value">${competitor.marketShare || 'N/A'}</div>
+                    <div class="gap-metric-label">Market Share</div>
+                  </div>
+                </div>
+                
+                <div class="gap-insights">
+                  <h4>Competitive Strengths</h4>
+                  <div class="insight-tags">
+                    ${competitor.strengths.map(strength => `<span class="insight-tag" style="background: #ecfdf5; color: #059669;">${strength}</span>`).join('')}
+                  </div>
+                  
+                  <h4>Competitive Weaknesses</h4>
+                  <div class="insight-tags">
+                    ${competitor.weaknesses.map(weakness => `<span class="insight-tag" style="background: #fef2f2; color: #dc2626;">${weakness}</span>`).join('')}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
         ${content.mvpProposal ? `
         <div class="page-break"></div>
         
@@ -428,7 +524,6 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
         
         <div class="footer">
           <p><strong>Generated on:</strong> ${content.generatedDate}</p>
-          ${content.searchQuery ? `<p><strong>Search Query:</strong> ${content.searchQuery}</p>` : ''}
           <p><em>This analysis is based on AI-powered market intelligence and should be validated with additional market research before making strategic decisions.</em></p>
         </div>
       </body>

@@ -20,14 +20,12 @@ import {
 import {
   AlertTriangle,
   BarChart3,
-  Building,
   ExternalLink,
   Lightbulb,
   Search,
   Target,
   TrendingUp,
   TrendingUpIcon,
-  Users,
   Download,
   FileText,
 } from 'lucide-react';
@@ -60,13 +58,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   onGapClick,
   onCompetitiveAreaClick,
 }) => {
-  const [selectedCompetitiveArea, setSelectedCompetitiveArea] = useState<{
-    area: string;
-    type: 'oversaturated' | 'underserved' | 'trend' | 'risk';
-  } | null>(null);
-  const [isCompetitorDialogOpen, setIsCompetitorDialogOpen] = useState<boolean>(false);
-  const [selectedRelatedJobs, setSelectedRelatedJobs] = useState<JobToBeDone[]>([]);
-  const [isRelatedJobsDialogOpen, setIsRelatedJobsDialogOpen] = useState<boolean>(false);
+
 
   // Normalize gaps
   const processedMarketGaps = marketGaps.map((gap, idx) =>
@@ -120,14 +112,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     return unique.slice(0, 6);
   };
 
-  const handleCompetitiveAreaClick = (
-    area: string,
-    type: 'oversaturated' | 'underserved' | 'trend' | 'risk'
-  ) => {
-    setSelectedCompetitiveArea({ area, type });
-    setIsCompetitorDialogOpen(true);
-    onCompetitiveAreaClick?.(area, type);
-  };
+
 
   const getDifficultyColor = (d: number) =>
     d >= 8 ? 'text-red-600' : d >= 6 ? 'text-orange-600' : d >= 4 ? 'text-yellow-600' : 'text-green-600';
@@ -160,13 +145,27 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         return sum + parseFloat(marketSize || '0');
       }, 0);
 
+      // Get all related opportunities from market gaps
+      const allRelatedOpportunities = processedGaps.flatMap(gap => getRelatedJobs(gap));
+      const uniqueRelatedOpportunities = allRelatedOpportunities.filter((job, index, self) => 
+        index === self.findIndex(j => j.id === job.id)
+      );
+
+      // Get all competitor companies from relevant jobs
+      const allCompetitorCompanies = relevantJobs.flatMap(job => job.competitors);
+      const uniqueCompetitorCompanies = allCompetitorCompanies.filter((comp, index, self) => 
+        index === self.findIndex(c => c.name === comp.name)
+      );
+
       const content = {
         title: 'Competitive Tech Development Strategy & MVP Proposal',
         marketGaps: processedGaps,
         totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
         generatedDate: new Date().toLocaleDateString(),
         mvpProposal,
-        searchQuery
+        searchQuery,
+        relatedOpportunities: uniqueRelatedOpportunities,
+        competitorCompanies: uniqueCompetitorCompanies
       };
 
       // Try to use the advanced PDF generator first, fallback to simple HTML
@@ -273,19 +272,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                           {onGapClick && <ExternalLink className="h-4 w-4 text-muted-foreground" />}
                         </div>
                         <CardDescription className="mt-1">{g.description}</CardDescription>
-                        {related.length > 0 && (
-                          <button
-                            className="flex items-center gap-2 mt-3 hover:text-blue-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedRelatedJobs(related);
-                              setIsRelatedJobsDialogOpen(true);
-                            }}
-                          >
-                            <Users className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm text-blue-600">{related.length} related opportunities</span>
-                          </button>
-                        )}
+
                       </div>
                       <Badge variant="outline">{g.industry}</Badge>
                     </div>
@@ -347,7 +334,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border-l-2 border-red-500 cursor-pointer hover:bg-red-100"
-                        onClick={() => handleCompetitiveAreaClick(area, 'oversaturated')}
+
                       >
                         <AlertTriangle className="h-4 w-4 text-red-500" />
                         <span className="text-sm text-red-700">{area}</span>
@@ -373,7 +360,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border-l-2 border-green-500 cursor-pointer hover:bg-green-100"
-                        onClick={() => handleCompetitiveAreaClick(area, 'underserved')}
+
                       >
                         <Target className="h-4 w-4 text-green-500" />
                         <span className="text-sm text-green-700">{area}</span>
@@ -400,7 +387,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                         key={i}
                         variant="default"
                         className="cursor-pointer"
-                        onClick={() => handleCompetitiveAreaClick(trend, 'trend')}
+
                       >
                         {trend}
                       </Badge>
@@ -424,7 +411,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100"
-                        onClick={() => handleCompetitiveAreaClick(risk, 'risk')}
+
                       >
                         <span className="w-2 h-2 bg-orange-500 rounded-full" />
                         <span className="text-sm text-orange-700">{risk}</span>
@@ -439,65 +426,21 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Competitor Companies */}
-      {/** Companies by industry - only show relevant to search **/}
+      {/* Download Tech Strategy Button */}
       {relevantJobs.length > 0 && (
-        (relevantJobs).some((j) => j.competitors.length > 0)
-      ) && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-green-600" /> Competitor Companies
-              <span className="text-sm text-muted-foreground">(Based on Search)</span>
-            </h3>
+          <div className="flex justify-center">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
               onClick={handleGeneratePDF}
               className="flex items-center gap-2"
               data-pdf-button
             >
-              <Download className="h-4 w-4" />
-              <FileText className="h-4 w-4" />
+              <Download className="h-5 w-5" />
+              <FileText className="h-5 w-5" />
               Download Tech Strategy
             </Button>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(
-              relevantJobs
-                .reduce((map, job) => {
-                  (map[job.industry] ??= []).push(...job.competitors);
-                  return map;
-                }, {} as Record<string, Competitor[]>)
-            ).map(([industry, comps]) => {
-              const unique = Object.values(
-                comps.reduce((m, c) => ({ ...m, [c.name]: c }), {})
-              ) as Competitor[];
-              return (
-                <div key={industry}>
-                  <h4 className="font-bold text-lg mb-2">{industry}</h4>
-                  <div className="grid gap-4">
-                    {unique.map((c, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-semibold">{c.name}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {c.marketShare ?? 'N/A'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{c.description}</p>
-                        <div className="text-xs text-green-600 mb-2">
-                          <strong>Strengths:</strong>{' '}{c.strengths.slice(0,2).join(', ')}
-                        </div>
-                        <div className="text-xs text-red-600">
-                          <strong>Weaknesses:</strong>{' '}{c.weaknesses.slice(0,2).join(', ')}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </section>
       )}
@@ -522,42 +465,9 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Competitor Dialog */}
-      <Dialog open={isCompetitorDialogOpen} onOpenChange={setIsCompetitorDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Competitive Analysis: {selectedCompetitiveArea?.area}
-            </DialogTitle>
-            <DialogDescription>
-              Detailed view for {selectedCompetitiveArea?.type}
-            </DialogDescription>
-          </DialogHeader>
-          {/* Dialog content here... */}
-        </DialogContent>
-      </Dialog>
 
-      {/* Related Jobs Dialog */}
-      <Dialog open={isRelatedJobsDialogOpen} onOpenChange={setIsRelatedJobsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Related Opportunities</DialogTitle>
-            <DialogDescription>Jobs related to the selected gap</DialogDescription>
-          </DialogHeader>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {selectedRelatedJobs.map((job) => (
-              <Card key={job.id} className="p-4">
-                <div className="font-semibold mb-1">{job.title}</div>
-                <p className="text-xs text-muted-foreground mb-2">{job.description}</p>
-                <div className="text-xs flex justify-between">
-                  <span>{job.industry}</span>
-                  <span>{job.profitPotential.revenue}</span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+
+
     </div>
   );
 };
