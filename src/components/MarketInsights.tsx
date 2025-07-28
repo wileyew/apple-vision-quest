@@ -34,6 +34,7 @@ import {
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 import { generateCompetitiveTechPDF, generateSimplePDF } from '@/lib/pdf-generator';
+import { generateMVPProposal } from '@/lib/openai';
 
 interface MarketInsightsProps {
   marketGaps: (MarketGap | string)[];
@@ -41,6 +42,7 @@ interface MarketInsightsProps {
   searchSuggestion?: string | null;
   allJobs?: JobToBeDone[];
   relevantJobs?: JobToBeDone[];
+  searchQuery?: string;
   onGapClick?: (gap: MarketGap) => void;
   onCompetitiveAreaClick?: (
     area: string,
@@ -54,6 +56,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   searchSuggestion,
   allJobs = [],
   relevantJobs = [],
+  searchQuery = '',
   onGapClick,
   onCompetitiveAreaClick,
 }) => {
@@ -132,7 +135,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
 
   // Generate PDF for competitive tech development
-  const handleGeneratePDF = () => {
+  const handleGeneratePDF = async () => {
     const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
     
     if (processedGaps.length === 0) {
@@ -140,24 +143,48 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
       return;
     }
 
-    const totalMarketSize = processedGaps.reduce((sum, gap) => {
-      const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
-      return sum + parseFloat(marketSize || '0');
-    }, 0);
+    // Show loading state
+    const button = document.querySelector('[data-pdf-button]') as HTMLButtonElement;
+    const originalText = button?.textContent;
+    if (button) {
+      button.disabled = true;
+      button.textContent = 'Generating MVP Proposal...';
+    }
 
-    const content = {
-      title: 'Competitive Tech Development Strategy',
-      marketGaps: processedGaps,
-      totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
-      generatedDate: new Date().toLocaleDateString()
-    };
-
-    // Try to use the advanced PDF generator first, fallback to simple HTML
     try {
-      generateCompetitiveTechPDF(content);
+      // Generate MVP proposal using GPT
+      const mvpProposal = await generateMVPProposal(processedGaps, searchQuery, relevantJobs);
+
+      const totalMarketSize = processedGaps.reduce((sum, gap) => {
+        const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
+        return sum + parseFloat(marketSize || '0');
+      }, 0);
+
+      const content = {
+        title: 'Competitive Tech Development Strategy & MVP Proposal',
+        marketGaps: processedGaps,
+        totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
+        generatedDate: new Date().toLocaleDateString(),
+        mvpProposal,
+        searchQuery
+      };
+
+      // Try to use the advanced PDF generator first, fallback to simple HTML
+      try {
+        generateCompetitiveTechPDF(content);
+      } catch (error) {
+        console.warn('Advanced PDF generation failed, using fallback:', error);
+        generateSimplePDF(content);
+      }
     } catch (error) {
-      console.warn('Advanced PDF generation failed, using fallback:', error);
-      generateSimplePDF(content);
+      console.error('Error generating MVP proposal:', error);
+      alert('Failed to generate MVP proposal. Please try again.');
+    } finally {
+      // Restore button state
+      if (button) {
+        button.disabled = false;
+        button.textContent = originalText || 'Download Tech Strategy';
+      }
     }
   };
 
@@ -428,6 +455,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
               size="sm"
               onClick={handleGeneratePDF}
               className="flex items-center gap-2"
+              data-pdf-button
             >
               <Download className="h-4 w-4" />
               <FileText className="h-4 w-4" />
@@ -474,65 +502,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Show all competitors only when no search is active */}
-      {relevantJobs.length === 0 && (
-        (allJobs).some((j) => j.competitors.length > 0)
-      ) && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-green-600" /> All Competitor Companies
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <FileText className="h-4 w-4" />
-              Download Tech Strategy
-            </Button>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(
-              allJobs
-                .reduce((map, job) => {
-                  (map[job.industry] ??= []).push(...job.competitors);
-                  return map;
-                }, {} as Record<string, Competitor[]>)
-            ).map(([industry, comps]) => {
-              const unique = Object.values(
-                comps.reduce((m, c) => ({ ...m, [c.name]: c }), {})
-              ) as Competitor[];
-              return (
-                <div key={industry}>
-                  <h4 className="font-bold text-lg mb-2">{industry}</h4>
-                  <div className="grid gap-4">
-                    {unique.map((c, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-semibold">{c.name}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {c.marketShare ?? 'N/A'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{c.description}</p>
-                        <div className="text-xs text-green-600 mb-2">
-                          <strong>Strengths:</strong>{' '}{c.strengths.slice(0,2).join(', ')}
-                        </div>
-                        <div className="text-xs text-red-600">
-                          <strong>Weaknesses:</strong>{' '}{c.weaknesses.slice(0,2).join(', ')}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+
 
       {/* Search Suggestions */}
       {searchSuggestion && relevantJobs.length > 0 && (

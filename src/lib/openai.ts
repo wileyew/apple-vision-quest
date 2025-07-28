@@ -15,6 +15,24 @@ export interface SearchAnalysis {
   competitiveAnalysis: CompetitiveAnalysis;
 }
 
+export interface MVPProposal {
+  title: string;
+  executiveSummary: string;
+  problemStatement: string;
+  solutionOverview: string;
+  targetMarket: string;
+  competitiveAdvantage: string;
+  technicalRequirements: string[];
+  businessModel: string;
+  goToMarketStrategy: string;
+  riskAssessment: string[];
+  successMetrics: string[];
+  timeline: string;
+  resourceRequirements: string;
+  marketValidation: string;
+  nextSteps: string[];
+}
+
 export interface MarketGap {
   id: string;
   title: string;
@@ -319,4 +337,150 @@ export const generateSearchSuggestions = async (partialQuery: string): Promise<s
     `Enterprise ${partialQuery} management`,
     `Sustainable ${partialQuery} alternatives`
   ];
+};
+
+export const generateMVPProposal = async (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[]
+): Promise<MVPProposal> => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a senior product strategist and startup consultant with deep expertise in MVP development and market validation. 
+          
+          Your task is to create a comprehensive MVP proposal that addresses identified market gaps with a focus on:
+          - Clear problem-solution fit
+          - Feasible technical implementation
+          - Validated market opportunity
+          - Competitive differentiation
+          - Realistic timeline and resources
+          - Measurable success criteria
+          
+          Respond with a detailed JSON object containing all MVP proposal sections.`
+        },
+        {
+          role: "user",
+          content: `Create a comprehensive MVP proposal for the following market analysis:
+          
+          Search Query: "${searchQuery}"
+          
+          Market Gaps Identified:
+          ${marketGaps.map((gap, index) => `
+            ${index + 1}. ${gap.title}
+            - Description: ${gap.description}
+            - Market Size: ${gap.estimatedMarketSize}
+            - Gap Intensity: ${gap.gapSize}/10
+            - Difficulty: ${gap.difficulty}/10
+            - Industry: ${gap.industry}
+            - Key Insights: ${gap.keyInsights.join(', ')}
+          `).join('\n')}
+          
+          Relevant Market Opportunities:
+          ${relevantJobs.map(job => `- ${job.title} (${job.industry}): ${job.description}`).join('\n')}
+          
+          Generate a detailed MVP proposal that:
+          1. Addresses the most promising market gap(s)
+          2. Provides clear rationale for why this MVP should be initiated
+          3. Includes technical feasibility assessment
+          4. Outlines competitive advantages
+          5. Defines success metrics and validation approach
+          6. Provides realistic timeline and resource requirements
+          
+          Focus on actionable insights and practical implementation steps.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 3000
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse the JSON response
+    const proposal = JSON.parse(response);
+    
+    // Validate and ensure all required fields are present
+    return {
+      title: proposal.title || `MVP Proposal: ${marketGaps[0]?.title || 'Market Opportunity'}`,
+      executiveSummary: proposal.executiveSummary || 'Comprehensive MVP proposal addressing identified market gaps.',
+      problemStatement: proposal.problemStatement || 'Market need requiring innovative solution.',
+      solutionOverview: proposal.solutionOverview || 'MVP solution addressing the identified problem.',
+      targetMarket: proposal.targetMarket || 'Primary target market segment.',
+      competitiveAdvantage: proposal.competitiveAdvantage || 'Unique value proposition and competitive differentiation.',
+      technicalRequirements: Array.isArray(proposal.technicalRequirements) ? proposal.technicalRequirements : ['Core platform development', 'User interface design', 'Data integration'],
+      businessModel: proposal.businessModel || 'Revenue model and monetization strategy.',
+      goToMarketStrategy: proposal.goToMarketStrategy || 'Market entry and customer acquisition approach.',
+      riskAssessment: Array.isArray(proposal.riskAssessment) ? proposal.riskAssessment : ['Market adoption risk', 'Technical implementation challenges'],
+      successMetrics: Array.isArray(proposal.successMetrics) ? proposal.successMetrics : ['User acquisition', 'Revenue growth', 'Market validation'],
+      timeline: proposal.timeline || '3-6 months development timeline.',
+      resourceRequirements: proposal.resourceRequirements || 'Development team, design resources, and initial funding.',
+      marketValidation: proposal.marketValidation || 'Approach to validate market demand and user needs.',
+      nextSteps: Array.isArray(proposal.nextSteps) ? proposal.nextSteps : ['Technical feasibility study', 'User research', 'Prototype development']
+    };
+
+  } catch (error) {
+    console.error('OpenAI API error for MVP proposal:', error);
+    
+    // Fallback MVP proposal
+    return generateFallbackMVPProposal(marketGaps, searchQuery, relevantJobs);
+  }
+};
+
+const generateFallbackMVPProposal = (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[]
+): MVPProposal => {
+  const primaryGap = marketGaps[0] || {
+    title: 'Market Opportunity',
+    description: 'Addressing identified market need',
+    estimatedMarketSize: '$2.5B',
+    industry: 'Technology'
+  };
+
+  return {
+    title: `MVP Proposal: ${primaryGap.title}`,
+    executiveSummary: `This MVP proposal addresses the identified market gap in ${primaryGap.title.toLowerCase()} with a focused solution that leverages current technology trends and market opportunities.`,
+    problemStatement: `The market lacks effective solutions for ${primaryGap.description.toLowerCase()}, creating significant opportunity for innovative approaches.`,
+    solutionOverview: `A streamlined MVP that addresses the core pain points identified in market research, focusing on essential features that deliver immediate value.`,
+    targetMarket: `Primary focus on ${primaryGap.industry} sector with potential expansion to adjacent markets.`,
+    competitiveAdvantage: `Unique approach combining modern technology stack with deep market understanding and user-centric design.`,
+    technicalRequirements: [
+      'Core platform development',
+      'User interface and experience design',
+      'Data integration and analytics',
+      'Security and compliance features',
+      'Mobile-responsive design'
+    ],
+    businessModel: 'Subscription-based SaaS model with tiered pricing based on usage and features.',
+    goToMarketStrategy: 'Direct sales approach with digital marketing and strategic partnerships.',
+    riskAssessment: [
+      'Market adoption and user acquisition challenges',
+      'Technical implementation complexity',
+      'Competitive response and market saturation',
+      'Resource constraints and timeline pressure'
+    ],
+    successMetrics: [
+      'User acquisition and retention rates',
+      'Revenue growth and customer lifetime value',
+      'Market validation and product-market fit',
+      'Competitive positioning and market share'
+    ],
+    timeline: '3-6 months for initial MVP development and market launch.',
+    resourceRequirements: 'Development team (3-5 members), design resources, initial funding for 6-12 months.',
+    marketValidation: 'User research, prototype testing, and early adopter feedback to validate market demand.',
+    nextSteps: [
+      'Conduct detailed user research and interviews',
+      'Develop technical architecture and feasibility study',
+      'Create wireframes and user journey mapping',
+      'Build initial prototype for user testing',
+      'Secure initial funding and team resources'
+    ]
+  };
 };

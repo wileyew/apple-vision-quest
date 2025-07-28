@@ -1,10 +1,12 @@
-import type { MarketGap } from './openai';
+import type { MarketGap, MVPProposal } from './openai';
 
 export interface PDFContent {
   title: string;
   marketGaps: MarketGap[];
   totalMarketSize: string;
   generatedDate: string;
+  mvpProposal?: MVPProposal;
+  searchQuery?: string;
 }
 
 export const generateCompetitiveTechPDF = (content: PDFContent) => {
@@ -322,8 +324,111 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
           </ul>
         </div>
         
+        ${content.mvpProposal ? `
+        <div class="page-break"></div>
+        
+        <div class="header">
+          <h1>MVP Development Proposal</h1>
+          <div class="subtitle">Strategic Implementation Plan for Market Opportunity</div>
+        </div>
+        
+        <div class="executive-summary">
+          <h2>Executive Summary</h2>
+          <p>${content.mvpProposal.executiveSummary}</p>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Problem Statement</h2>
+          <div class="gap-card">
+            <p class="gap-description">${content.mvpProposal.problemStatement}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Solution Overview</h2>
+          <div class="gap-card">
+            <p class="gap-description">${content.mvpProposal.solutionOverview}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Target Market & Competitive Advantage</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Target Market</h3>
+            <p class="gap-description">${content.mvpProposal.targetMarket}</p>
+            
+            <h3 class="gap-title">Competitive Advantage</h3>
+            <p class="gap-description">${content.mvpProposal.competitiveAdvantage}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Technical Requirements</h2>
+          <div class="gap-card">
+            <div class="insight-tags">
+              ${content.mvpProposal.technicalRequirements.map(req => `<span class="insight-tag">${req}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Business Model & Go-to-Market</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Business Model</h3>
+            <p class="gap-description">${content.mvpProposal.businessModel}</p>
+            
+            <h3 class="gap-title">Go-to-Market Strategy</h3>
+            <p class="gap-description">${content.mvpProposal.goToMarketStrategy}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Risk Assessment</h2>
+          <div class="gap-card">
+            <div class="insight-tags">
+              ${content.mvpProposal.riskAssessment.map(risk => `<span class="insight-tag" style="background: #fef2f2; color: #dc2626;">${risk}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Success Metrics</h2>
+          <div class="gap-card">
+            <div class="insight-tags">
+              ${content.mvpProposal.successMetrics.map(metric => `<span class="insight-tag" style="background: #ecfdf5; color: #059669;">${metric}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Timeline & Resources</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Timeline</h3>
+            <p class="gap-description">${content.mvpProposal.timeline}</p>
+            
+            <h3 class="gap-title">Resource Requirements</h3>
+            <p class="gap-description">${content.mvpProposal.resourceRequirements}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Market Validation</h2>
+          <div class="gap-card">
+            <p class="gap-description">${content.mvpProposal.marketValidation}</p>
+          </div>
+        </div>
+        
+        <div class="recommendations">
+          <h2>Next Steps</h2>
+          <ul>
+            ${content.mvpProposal.nextSteps.map(step => `<li>${step}</li>`).join('')}
+          </ul>
+        </div>
+        ` : ''}
+        
         <div class="footer">
           <p><strong>Generated on:</strong> ${content.generatedDate}</p>
+          ${content.searchQuery ? `<p><strong>Search Query:</strong> ${content.searchQuery}</p>` : ''}
           <p><em>This analysis is based on AI-powered market intelligence and should be validated with additional market research before making strategic decisions.</em></p>
         </div>
       </body>
