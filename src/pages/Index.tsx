@@ -296,6 +296,7 @@ const Index: FC = () => {
                 marketGaps={searchAnalysis?.marketGaps || []}
                 competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
                 allJobs={jobsToBeDone}
+                relevantJobs={searchAnalysis?.relevantOpportunities || []}
                 onGapClick={() => {}}
                 onCompetitiveAreaClick={() => {}}
                 {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}

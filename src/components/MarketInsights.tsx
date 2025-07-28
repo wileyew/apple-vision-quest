@@ -14,6 +14,7 @@ interface MarketInsightsProps {
   competitiveAnalysis: CompetitiveAnalysis | string;
   searchSuggestion?: string | null;
   allJobs?: JobToBeDone[];
+  relevantJobs?: JobToBeDone[];
   onGapClick?: (gap: MarketGap) => void;
   onCompetitiveAreaClick?: (area: string, type: 'oversaturated' | 'underserved' | 'trend' | 'risk') => void;
 }
@@ -23,6 +24,7 @@ export const MarketInsights = ({
   competitiveAnalysis, 
   searchSuggestion,
   allJobs = [],
+  relevantJobs = [],
   onGapClick,
   onCompetitiveAreaClick
 }: MarketInsightsProps) => {
@@ -31,6 +33,8 @@ export const MarketInsights = ({
     type: 'oversaturated' | 'underserved' | 'trend' | 'risk';
   } | null>(null);
   const [isCompetitorDialogOpen, setIsCompetitorDialogOpen] = useState(false);
+  const [selectedRelatedJobs, setSelectedRelatedJobs] = useState<JobToBeDone[]>([]);
+  const [isRelatedJobsDialogOpen, setIsRelatedJobsDialogOpen] = useState(false);
   // Transform marketGaps if they're simple strings from API
   const processedMarketGaps = marketGaps.map((gap: MarketGap | string, index) => {
     if (typeof gap === 'string') {
@@ -62,7 +66,22 @@ export const MarketInsights = ({
     const gapKeywords = gap.title.toLowerCase().split(' ');
     const gapDescription = gap.description.toLowerCase();
     
-    return allJobs.filter(job => {
+    return relevantJobs.length > 0 ? relevantJobs.filter(job => {
+      const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
+      const jobPainPoints = job.painPoints.join(' ').toLowerCase();
+      
+      // Check if any gap keywords match job content
+      const keywordMatch = gapKeywords.some(keyword => 
+        jobText.includes(keyword) || jobPainPoints.includes(keyword)
+      );
+      
+      // Check if gap description relates to job
+      const descriptionMatch = gapDescription.split(' ').some(word => 
+        jobText.includes(word) || jobPainPoints.includes(word)
+      );
+      
+      return keywordMatch || descriptionMatch;
+    }) : allJobs.filter(job => {
       const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
       const jobPainPoints = job.painPoints.join(' ').toLowerCase();
       
@@ -85,7 +104,8 @@ export const MarketInsights = ({
     const areaLower = area.toLowerCase();
     const allCompetitors: Competitor[] = [];
     
-    allJobs.forEach(job => {
+    const jobsToAnalyze = relevantJobs.length > 0 ? relevantJobs : allJobs;
+    jobsToAnalyze.forEach(job => {
       const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
       if (jobText.includes(areaLower) || job.industry.toLowerCase().includes(areaLower)) {
         allCompetitors.push(...job.competitors);
@@ -139,6 +159,92 @@ export const MarketInsights = ({
           Identified Market Gaps
         </h3>
         
+        {/* Market Gap Theme Analysis */}
+        {processedMarketGaps.length > 0 && (
+          <div className="mb-6">
+            <Card className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-blue-800 flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5" />
+                  Market Gap Analysis
+                </h4>
+                
+                {/* What's Not Being Solved */}
+                <div>
+                  <h5 className="font-medium text-blue-700 mb-2">What's Not Being Solved:</h5>
+                  <div className="space-y-2">
+                    {(() => {
+                      // Extract common pain points from market gaps
+                      const painPoints = new Set<string>();
+                      processedMarketGaps.forEach(gap => {
+                        const description = gap.description.toLowerCase();
+                        if (description.includes('limited') || description.includes('lack')) {
+                          painPoints.add('Limited current solutions');
+                        }
+                        if (description.includes('inefficient') || description.includes('manual')) {
+                          painPoints.add('Inefficient processes');
+                        }
+                        if (description.includes('integration') || description.includes('connect')) {
+                          painPoints.add('Poor integration capabilities');
+                        }
+                        if (description.includes('user experience') || description.includes('complex')) {
+                          painPoints.add('Complex user experience');
+                        }
+                      });
+                      return Array.from(painPoints).map((point, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm text-blue-600">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          {point}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+                
+                {/* Required Product Functionality */}
+                <div>
+                  <h5 className="font-medium text-green-700 mb-2">Required Product Functionality:</h5>
+                  <div className="space-y-2">
+                    {(() => {
+                      // Extract common functionality needs from market gaps
+                      const functionalities = new Set<string>();
+                      processedMarketGaps.forEach(gap => {
+                        const title = gap.title.toLowerCase();
+                        const description = gap.description.toLowerCase();
+                        
+                        if (title.includes('ai') || description.includes('intelligent')) {
+                          functionalities.add('AI-powered automation');
+                        }
+                        if (title.includes('integration') || description.includes('connect')) {
+                          functionalities.add('Seamless integration');
+                        }
+                        if (title.includes('mobile') || description.includes('mobile')) {
+                          functionalities.add('Mobile-first design');
+                        }
+                        if (title.includes('real-time') || description.includes('real-time')) {
+                          functionalities.add('Real-time processing');
+                        }
+                        if (title.includes('analytics') || description.includes('insights')) {
+                          functionalities.add('Advanced analytics');
+                        }
+                        if (title.includes('collaboration') || description.includes('team')) {
+                          functionalities.add('Team collaboration tools');
+                        }
+                      });
+                      return Array.from(functionalities).map((func, idx) => (
+                        <div key={idx} className="flex items-center gap-2 text-sm text-green-600">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          {func}
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+        
         {processedMarketGaps.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
@@ -170,7 +276,14 @@ export const MarketInsights = ({
                           {gap.description}
                         </CardDescription>
                         {relatedJobs.length > 0 && (
-                          <div className="flex items-center gap-2 mt-3">
+                          <div 
+                            className="flex items-center gap-2 mt-3 cursor-pointer hover:text-blue-700 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedRelatedJobs(relatedJobs);
+                              setIsRelatedJobsDialogOpen(true);
+                            }}
+                          >
                             <Users className="h-4 w-4 text-blue-500" />
                             <span className="text-sm text-blue-600">
                               {relatedJobs.length} related opportunities
@@ -236,13 +349,14 @@ export const MarketInsights = ({
       <div className="space-y-4">
         <h3 className="text-xl font-semibold flex items-center gap-2">
           <Building className="h-5 w-5 text-green-600" />
-          Competitor Companies
+          Competitor Companies {relevantJobs.length > 0 && '(Based on Search)'}
         </h3>
         {
           (() => {
             // Group competitors by industry
             const industryMap = new Map<string, Competitor[]>();
-            allJobs.forEach(job => {
+            const jobsToAnalyze = relevantJobs.length > 0 ? relevantJobs : allJobs;
+            jobsToAnalyze.forEach(job => {
               if (!industryMap.has(job.industry)) industryMap.set(job.industry, []);
               job.competitors.forEach((comp: Competitor) => {
                 industryMap.get(job.industry)!.push(comp);
@@ -256,9 +370,39 @@ export const MarketInsights = ({
                   <h4 className="text-lg font-bold mb-2">{industry}</h4>
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {uniqueCompetitors.map((comp, idx) => (
-                      <Card key={comp.name + idx} className="p-4 flex flex-col gap-2">
-                        <div className="font-semibold">{comp.name}</div>
-                        <div className="text-sm text-muted-foreground">{comp.marketShare ? `Market Share: ${comp.marketShare}` : 'Market Share: N/A'}</div>
+                      <Card key={comp.name + idx} className="p-4 flex flex-col gap-3">
+                        <div className="flex justify-between items-start">
+                          <div className="font-semibold">{comp.name}</div>
+                          <Badge variant="outline" className="text-xs">
+                            {comp.marketShare ? comp.marketShare : 'N/A'}
+                          </Badge>
+                        </div>
+                        
+                        {/* Competitive Advantages */}
+                        <div>
+                          <div className="text-xs font-medium text-green-700 mb-1">Competitive Advantages:</div>
+                          <div className="space-y-1">
+                            {comp.strengths.slice(0, 2).map((strength, sIdx) => (
+                              <div key={sIdx} className="flex items-center gap-1 text-xs text-green-600">
+                                <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                                {strength}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        {/* Not Solving For */}
+                        <div>
+                          <div className="text-xs font-medium text-red-700 mb-1">Not Solving For:</div>
+                          <div className="space-y-1">
+                            {comp.weaknesses.slice(0, 2).map((weakness, wIdx) => (
+                              <div key={wIdx} className="flex items-center gap-1 text-xs text-red-600">
+                                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                                {weakness}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </Card>
                     ))}
                   </div>
@@ -604,6 +748,33 @@ export const MarketInsights = ({
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Related Jobs Dialog */}
+      <Dialog open={isRelatedJobsDialogOpen} onOpenChange={setIsRelatedJobsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Related Opportunities</DialogTitle>
+            <DialogDescription>
+              Opportunities related to this market gap
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {selectedRelatedJobs.map((job) => (
+              <Card key={job.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">{job.title}</h4>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{job.description}</p>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{job.industry}</span>
+                    <span>{job.profitPotential.revenue}</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
