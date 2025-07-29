@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import type { JobToBeDone } from '@/data/jobsToBeDone';
+import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 
 // Initialize OpenAI client - in production, this should come from environment variables
 const openai = new OpenAI({
@@ -31,6 +31,57 @@ export interface MVPProposal {
   resourceRequirements: string;
   marketValidation: string;
   nextSteps: string[];
+}
+
+export interface ProductRoadmap {
+  title: string;
+  executiveSummary: string;
+  marketOpportunity: string;
+  productVision: string;
+  competitiveEdge: string;
+  revenuePotential: {
+    conservative: string;
+    moderate: string;
+    aggressive: string;
+    assumptions: string[];
+  };
+  productFeatures: {
+    phase1: string[];
+    phase2: string[];
+    phase3: string[];
+  };
+  competitiveAnalysis: {
+    competitors: Array<{
+      name: string;
+      offerings: string[];
+      weaknesses: string[];
+      marketShare: string;
+    }>;
+    ourAdvantages: string[];
+  };
+  goToMarketStrategy: {
+    targetSegments: string[];
+    channels: string[];
+    pricing: string;
+    partnerships: string[];
+  };
+  successMetrics: {
+    userMetrics: string[];
+    businessMetrics: string[];
+    marketMetrics: string[];
+  };
+  timeline: {
+    phase1: string;
+    phase2: string;
+    phase3: string;
+    totalTimeline: string;
+  };
+  resourceRequirements: {
+    team: string[];
+    technology: string[];
+    funding: string;
+    partnerships: string[];
+  };
 }
 
 export interface MarketGap {
@@ -430,6 +481,229 @@ export const generateMVPProposal = async (
     // Fallback MVP proposal
     return generateFallbackMVPProposal(marketGaps, searchQuery, relevantJobs);
   }
+};
+
+export const generateDetailedProductRoadmap = async (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[],
+  competitorCompanies: Competitor[]
+): Promise<ProductRoadmap> => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a senior product strategist and business consultant with deep expertise in product development, competitive analysis, and market strategy. 
+          
+          Your task is to create a comprehensive product roadmap that addresses identified market gaps with detailed competitive analysis and revenue projections.
+          
+          Focus on:
+          - Clear competitive advantages over existing solutions
+          - Realistic revenue potential with different scenarios
+          - Detailed feature roadmap across multiple phases
+          - Comprehensive competitive analysis with specific offerings
+          - Measurable success metrics
+          - Realistic timeline and resource requirements
+          
+          Respond with a detailed JSON object containing all product roadmap sections.`
+        },
+        {
+          role: "user",
+          content: `Create a comprehensive product roadmap for the following market analysis:
+          
+          Search Query: "${searchQuery}"
+          
+          Market Gaps Identified:
+          ${marketGaps.map((gap, index) => `
+            ${index + 1}. ${gap.title}
+            - Description: ${gap.description}
+            - Market Size: ${gap.estimatedMarketSize}
+            - Gap Intensity: ${gap.gapSize}/10
+            - Difficulty: ${gap.difficulty}/10
+            - Industry: ${gap.industry}
+            - Key Insights: ${gap.keyInsights.join(', ')}
+          `).join('\n')}
+          
+          Relevant Market Opportunities:
+          ${relevantJobs.map(job => `- ${job.title} (${job.industry}): ${job.description}`).join('\n')}
+          
+          Competitor Companies:
+          ${competitorCompanies.map(comp => `- ${comp.name}: ${comp.description} (Strengths: ${comp.strengths.join(', ')}, Weaknesses: ${comp.weaknesses.join(', ')})`).join('\n')}
+          
+          Generate a detailed product roadmap that:
+          1. Addresses the most promising market gaps with clear competitive advantages
+          2. Provides realistic revenue projections with conservative, moderate, and aggressive scenarios
+          3. Outlines detailed product features across 3 development phases
+          4. Analyzes competitors and their specific offerings to identify clear advantages
+          5. Defines comprehensive go-to-market strategy with target segments and channels
+          6. Establishes measurable success metrics across user, business, and market dimensions
+          7. Provides realistic timeline and resource requirements
+          
+          Focus on actionable insights and practical implementation steps with clear competitive differentiation.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse the JSON response
+    const roadmap = JSON.parse(response);
+    
+    // Validate and ensure all required fields are present
+    return {
+      title: roadmap.title || `Product Roadmap: ${marketGaps[0]?.title || 'Market Opportunity'}`,
+      executiveSummary: roadmap.executiveSummary || 'Comprehensive product roadmap addressing identified market gaps with competitive advantages.',
+      marketOpportunity: roadmap.marketOpportunity || 'Significant market opportunity requiring innovative product solution.',
+      productVision: roadmap.productVision || 'Vision for a market-leading product that addresses key pain points.',
+      competitiveEdge: roadmap.competitiveEdge || 'Unique competitive advantages over existing solutions.',
+      revenuePotential: {
+        conservative: roadmap.revenuePotential?.conservative || '$1M - $5M annually',
+        moderate: roadmap.revenuePotential?.moderate || '$5M - $20M annually',
+        aggressive: roadmap.revenuePotential?.aggressive || '$20M - $50M annually',
+        assumptions: Array.isArray(roadmap.revenuePotential?.assumptions) ? roadmap.revenuePotential.assumptions : [
+          'Market penetration of 1-5%',
+          'Average customer lifetime value of $10K-$50K',
+          'Customer acquisition cost of $1K-$5K'
+        ]
+      },
+      productFeatures: {
+        phase1: Array.isArray(roadmap.productFeatures?.phase1) ? roadmap.productFeatures.phase1 : ['Core platform functionality', 'Basic user interface', 'Essential integrations'],
+        phase2: Array.isArray(roadmap.productFeatures?.phase2) ? roadmap.productFeatures.phase2 : ['Advanced features', 'Mobile application', 'API development'],
+        phase3: Array.isArray(roadmap.productFeatures?.phase3) ? roadmap.productFeatures.phase3 : ['AI/ML capabilities', 'Enterprise features', 'International expansion']
+      },
+      competitiveAnalysis: {
+        competitors: Array.isArray(roadmap.competitiveAnalysis?.competitors) ? roadmap.competitiveAnalysis.competitors : [],
+        ourAdvantages: Array.isArray(roadmap.competitiveAnalysis?.ourAdvantages) ? roadmap.competitiveAnalysis.ourAdvantages : ['Superior user experience', 'Advanced technology stack', 'Better pricing model']
+      },
+      goToMarketStrategy: {
+        targetSegments: Array.isArray(roadmap.goToMarketStrategy?.targetSegments) ? roadmap.goToMarketStrategy.targetSegments : ['Early adopters', 'Small to medium businesses'],
+        channels: Array.isArray(roadmap.goToMarketStrategy?.channels) ? roadmap.goToMarketStrategy.channels : ['Direct sales', 'Digital marketing', 'Strategic partnerships'],
+        pricing: roadmap.goToMarketStrategy?.pricing || 'Subscription-based model with tiered pricing',
+        partnerships: Array.isArray(roadmap.goToMarketStrategy?.partnerships) ? roadmap.goToMarketStrategy.partnerships : ['Technology partners', 'Channel partners', 'Industry associations']
+      },
+      successMetrics: {
+        userMetrics: Array.isArray(roadmap.successMetrics?.userMetrics) ? roadmap.successMetrics.userMetrics : ['User acquisition', 'User retention', 'User engagement'],
+        businessMetrics: Array.isArray(roadmap.successMetrics?.businessMetrics) ? roadmap.successMetrics.businessMetrics : ['Revenue growth', 'Customer lifetime value', 'Profit margins'],
+        marketMetrics: Array.isArray(roadmap.successMetrics?.marketMetrics) ? roadmap.successMetrics.marketMetrics : ['Market share', 'Brand awareness', 'Competitive positioning']
+      },
+      timeline: {
+        phase1: roadmap.timeline?.phase1 || '3-6 months',
+        phase2: roadmap.timeline?.phase2 || '6-12 months',
+        phase3: roadmap.timeline?.phase3 || '12-18 months',
+        totalTimeline: roadmap.timeline?.totalTimeline || '18-24 months'
+      },
+      resourceRequirements: {
+        team: Array.isArray(roadmap.resourceRequirements?.team) ? roadmap.resourceRequirements.team : ['Product Manager', 'Development Team', 'Design Team'],
+        technology: Array.isArray(roadmap.resourceRequirements?.technology) ? roadmap.resourceRequirements.technology : ['Cloud infrastructure', 'Development tools', 'Analytics platform'],
+        funding: roadmap.resourceRequirements?.funding || '$500K - $2M',
+        partnerships: Array.isArray(roadmap.resourceRequirements?.partnerships) ? roadmap.resourceRequirements.partnerships : ['Technology vendors', 'Service providers', 'Industry experts']
+      }
+    };
+
+  } catch (error) {
+    console.error('OpenAI API error for product roadmap:', error);
+    
+    // Fallback product roadmap
+    return generateFallbackProductRoadmap(marketGaps, searchQuery, relevantJobs, competitorCompanies);
+  }
+};
+
+const generateFallbackProductRoadmap = (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[],
+  competitorCompanies: Competitor[]
+): ProductRoadmap => {
+  const primaryGap = marketGaps[0] || {
+    title: 'Market Opportunity',
+    description: 'Addressing identified market need',
+    estimatedMarketSize: '$2.5B',
+    industry: 'Technology'
+  };
+
+  return {
+    title: `Product Roadmap: ${primaryGap.title}`,
+    executiveSummary: `Comprehensive product roadmap addressing the identified market gap in ${primaryGap.title.toLowerCase()} with clear competitive advantages and revenue potential.`,
+    marketOpportunity: `Significant opportunity in ${primaryGap.industry} sector with ${primaryGap.estimatedMarketSize} market size and clear pain points requiring innovative solutions.`,
+    productVision: `To become the leading solution in ${primaryGap.industry} by addressing key market gaps with superior technology and user experience.`,
+    competitiveEdge: `Unique combination of advanced technology, superior user experience, and competitive pricing that addresses gaps in current market offerings.`,
+    revenuePotential: {
+      conservative: '$1M - $5M annually',
+      moderate: '$5M - $20M annually',
+      aggressive: '$20M - $50M annually',
+      assumptions: [
+        'Market penetration of 1-5%',
+        'Average customer lifetime value of $10K-$50K',
+        'Customer acquisition cost of $1K-$5K',
+        'Subscription-based revenue model'
+      ]
+    },
+    productFeatures: {
+      phase1: [
+        'Core platform functionality',
+        'Basic user interface',
+        'Essential integrations',
+        'User authentication and management'
+      ],
+      phase2: [
+        'Advanced features and analytics',
+        'Mobile application',
+        'API development and integrations',
+        'Advanced reporting and insights'
+      ],
+      phase3: [
+        'AI/ML capabilities',
+        'Enterprise features and scalability',
+        'International expansion',
+        'Advanced automation and workflows'
+      ]
+    },
+    competitiveAnalysis: {
+      competitors: competitorCompanies.map(comp => ({
+        name: comp.name,
+        offerings: comp.strengths,
+        weaknesses: comp.weaknesses,
+        marketShare: comp.marketShare || 'N/A'
+      })),
+      ourAdvantages: [
+        'Superior user experience and interface design',
+        'Advanced technology stack and modern architecture',
+        'Better pricing model and value proposition',
+        'Faster time to market and agile development',
+        'Strong focus on customer success and support'
+      ]
+    },
+    goToMarketStrategy: {
+      targetSegments: ['Early adopters and innovators', 'Small to medium businesses', 'Technology-forward enterprises'],
+      channels: ['Direct sales and marketing', 'Digital marketing and SEO', 'Strategic partnerships and alliances'],
+      pricing: 'Subscription-based model with tiered pricing based on features and usage',
+      partnerships: ['Technology vendors and integrators', 'Channel partners and resellers', 'Industry associations and thought leaders']
+    },
+    successMetrics: {
+      userMetrics: ['User acquisition and growth rate', 'User retention and engagement', 'User satisfaction and NPS scores'],
+      businessMetrics: ['Revenue growth and ARR', 'Customer lifetime value', 'Profit margins and unit economics'],
+      marketMetrics: ['Market share and competitive positioning', 'Brand awareness and recognition', 'Customer acquisition cost and efficiency']
+    },
+    timeline: {
+      phase1: '3-6 months for MVP development and initial launch',
+      phase2: '6-12 months for feature expansion and market validation',
+      phase3: '12-18 months for scaling and enterprise features',
+      totalTimeline: '18-24 months for full product roadmap execution'
+    },
+    resourceRequirements: {
+      team: ['Product Manager', 'Development Team (3-5 engineers)', 'Design Team', 'Marketing and Sales Team'],
+      technology: ['Cloud infrastructure (AWS/Azure)', 'Development tools and platforms', 'Analytics and monitoring tools'],
+      funding: '$500K - $2M for 18-24 months of development and go-to-market',
+      partnerships: ['Technology vendors and service providers', 'Industry experts and advisors', 'Strategic partners and integrators']
+    }
+  };
 };
 
 const generateFallbackMVPProposal = (

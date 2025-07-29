@@ -1,4 +1,4 @@
-import type { MarketGap, MVPProposal } from './openai';
+import type { MarketGap, MVPProposal, ProductRoadmap } from './openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 
 export interface PDFContent {
@@ -7,6 +7,7 @@ export interface PDFContent {
   totalMarketSize: string;
   generatedDate: string;
   mvpProposal?: MVPProposal;
+  productRoadmap?: ProductRoadmap;
   searchQuery?: string;
   relatedOpportunities?: JobToBeDone[];
   competitorCompanies?: Competitor[];
@@ -519,6 +520,196 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
           <ul>
             ${content.mvpProposal.nextSteps.map(step => `<li>${step}</li>`).join('')}
           </ul>
+        </div>
+        ` : ''}
+        
+        ${content.productRoadmap ? `
+        <div class="page-break"></div>
+        
+        <div class="header">
+          <h1>Detailed Product Roadmap</h1>
+          <div class="subtitle">Strategic Product Development Plan with Competitive Analysis</div>
+        </div>
+        
+        <div class="executive-summary">
+          <h2>Executive Summary</h2>
+          <p>${content.productRoadmap.executiveSummary}</p>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Market Opportunity & Product Vision</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Market Opportunity</h3>
+            <p class="gap-description">${content.productRoadmap.marketOpportunity}</p>
+            
+            <h3 class="gap-title">Product Vision</h3>
+            <p class="gap-description">${content.productRoadmap.productVision}</p>
+            
+            <h3 class="gap-title">Competitive Edge</h3>
+            <p class="gap-description">${content.productRoadmap.competitiveEdge}</p>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Revenue Potential Analysis</h2>
+          <div class="gap-card">
+            <div class="gap-metrics">
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.revenuePotential.conservative}</div>
+                <div class="gap-metric-label">Conservative</div>
+              </div>
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.revenuePotential.moderate}</div>
+                <div class="gap-metric-label">Moderate</div>
+              </div>
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.revenuePotential.aggressive}</div>
+                <div class="gap-metric-label">Aggressive</div>
+              </div>
+            </div>
+            
+            <div class="gap-insights">
+              <h4>Revenue Assumptions</h4>
+              <div class="insight-tags">
+                ${content.productRoadmap.revenuePotential.assumptions.map(assumption => `<span class="insight-tag">${assumption}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Product Features Roadmap</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Phase 1: Foundation (${content.productRoadmap.timeline.phase1})</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.productFeatures.phase1.map(feature => `<span class="insight-tag">${feature}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Phase 2: Growth (${content.productRoadmap.timeline.phase2})</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.productFeatures.phase2.map(feature => `<span class="insight-tag">${feature}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Phase 3: Scale (${content.productRoadmap.timeline.phase3})</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.productFeatures.phase3.map(feature => `<span class="insight-tag">${feature}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Competitive Analysis</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Our Competitive Advantages</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.competitiveAnalysis.ourAdvantages.map(advantage => `<span class="insight-tag" style="background: #ecfdf5; color: #059669;">${advantage}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Competitor Analysis</h3>
+            ${content.productRoadmap.competitiveAnalysis.competitors.map((competitor, index) => `
+              <div style="margin: 20px 0; padding: 15px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                <h4 style="font-weight: bold; margin-bottom: 10px;">${competitor.name} (Market Share: ${competitor.marketShare})</h4>
+                <div style="margin-bottom: 10px;">
+                  <strong>Offerings:</strong>
+                  <div class="insight-tags">
+                    ${competitor.offerings.map(offering => `<span class="insight-tag">${offering}</span>`).join('')}
+                  </div>
+                </div>
+                <div>
+                  <strong>Weaknesses:</strong>
+                  <div class="insight-tags">
+                    ${competitor.weaknesses.map(weakness => `<span class="insight-tag" style="background: #fef2f2; color: #dc2626;">${weakness}</span>`).join('')}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Go-to-Market Strategy</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Target Segments</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.goToMarketStrategy.targetSegments.map(segment => `<span class="insight-tag">${segment}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Distribution Channels</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.goToMarketStrategy.channels.map(channel => `<span class="insight-tag">${channel}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Pricing Strategy</h3>
+            <p class="gap-description">${content.productRoadmap.goToMarketStrategy.pricing}</p>
+            
+            <h3 class="gap-title">Strategic Partnerships</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.goToMarketStrategy.partnerships.map(partnership => `<span class="insight-tag">${partnership}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Success Metrics</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">User Metrics</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.successMetrics.userMetrics.map(metric => `<span class="insight-tag">${metric}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Business Metrics</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.successMetrics.businessMetrics.map(metric => `<span class="insight-tag">${metric}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Market Metrics</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.successMetrics.marketMetrics.map(metric => `<span class="insight-tag">${metric}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Timeline & Resource Requirements</h2>
+          <div class="gap-card">
+            <h3 class="gap-title">Development Timeline</h3>
+            <div class="gap-metrics">
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.timeline.phase1}</div>
+                <div class="gap-metric-label">Phase 1</div>
+              </div>
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.timeline.phase2}</div>
+                <div class="gap-metric-label">Phase 2</div>
+              </div>
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.timeline.phase3}</div>
+                <div class="gap-metric-label">Phase 3</div>
+              </div>
+              <div class="gap-metric">
+                <div class="gap-metric-value">${content.productRoadmap.timeline.totalTimeline}</div>
+                <div class="gap-metric-label">Total</div>
+              </div>
+            </div>
+            
+            <h3 class="gap-title">Team Requirements</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.resourceRequirements.team.map(role => `<span class="insight-tag">${role}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Technology Requirements</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.resourceRequirements.technology.map(tech => `<span class="insight-tag">${tech}</span>`).join('')}
+            </div>
+            
+            <h3 class="gap-title">Funding Requirements</h3>
+            <p class="gap-description">${content.productRoadmap.resourceRequirements.funding}</p>
+            
+            <h3 class="gap-title">Partnership Requirements</h3>
+            <div class="insight-tags">
+              ${content.productRoadmap.resourceRequirements.partnerships.map(partnership => `<span class="insight-tag">${partnership}</span>`).join('')}
+            </div>
+          </div>
         </div>
         ` : ''}
         

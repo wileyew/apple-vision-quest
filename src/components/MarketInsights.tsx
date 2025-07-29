@@ -32,7 +32,7 @@ import {
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 import { generateCompetitiveTechPDF, generateSimplePDF } from '@/lib/pdf-generator';
-import { generateMVPProposal } from '@/lib/openai';
+import { generateMVPProposal, generateDetailedProductRoadmap } from '@/lib/openai';
 
 interface MarketInsightsProps {
   marketGaps: (MarketGap | string)[];
@@ -137,8 +137,11 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     }
 
     try {
-      // Generate MVP proposal using GPT
-      const mvpProposal = await generateMVPProposal(processedGaps, searchQuery, relevantJobs);
+      // Generate MVP proposal and detailed product roadmap using GPT
+      const [mvpProposal, productRoadmap] = await Promise.all([
+        generateMVPProposal(processedGaps, searchQuery, relevantJobs),
+        generateDetailedProductRoadmap(processedGaps, searchQuery, relevantJobs, relevantJobs.flatMap(job => job.competitors))
+      ]);
 
       const totalMarketSize = processedGaps.reduce((sum, gap) => {
         const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
@@ -158,11 +161,12 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
       );
 
       const content = {
-        title: 'Competitive Tech Development Strategy & MVP Proposal',
+        title: 'Comprehensive Product Development Strategy & Roadmap',
         marketGaps: processedGaps,
         totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
         generatedDate: new Date().toLocaleDateString(),
         mvpProposal,
+        productRoadmap,
         searchQuery,
         relatedOpportunities: uniqueRelatedOpportunities,
         competitorCompanies: uniqueCompetitorCompanies
@@ -311,6 +315,28 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
+      {/* Product Roadmap Button */}
+      {processedMarketGaps.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex justify-center">
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleGeneratePDF}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+              data-pdf-button
+            >
+              <Download className="h-5 w-5" />
+              <FileText className="h-5 w-5" />
+              Get Detailed Product Roadmap
+            </Button>
+          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Build a product roadmap to solve identified market gaps with competitive advantages
+          </p>
+        </section>
+      )}
+
       {/* Competitive Analysis */}
       {analysis && (
         <section className="space-y-4">
@@ -426,24 +452,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Download Tech Strategy Button */}
-      {relevantJobs.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2"
-              data-pdf-button
-            >
-              <Download className="h-5 w-5" />
-              <FileText className="h-5 w-5" />
-              Download Tech Strategy
-            </Button>
-          </div>
-        </section>
-      )}
+
 
 
 
