@@ -32,7 +32,7 @@ import {
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 import { generateCompetitiveTechPDF, generateSimplePDF } from '@/lib/pdf-generator';
-import { generateMVPProposal, generateDetailedProductRoadmap } from '@/lib/openai';
+import { generateUnsolvedProblemsRoadmap } from '@/lib/openai';
 
 interface MarketInsightsProps {
   marketGaps: (MarketGap | string)[];
@@ -119,7 +119,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   const getGapSizeColor = (s: number) =>
     s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
 
-  // Generate PDF for competitive tech development
+  // Generate PDF for unsolved problems roadmap
   const handleGeneratePDF = async () => {
     const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
     
@@ -133,43 +133,30 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     const originalText = button?.textContent;
     if (button) {
       button.disabled = true;
-      button.textContent = 'Generating MVP Proposal...';
+      button.textContent = 'Generating Unsolved Problems Roadmap...';
     }
 
     try {
-      // Generate MVP proposal and detailed product roadmap using GPT
-      const [mvpProposal, productRoadmap] = await Promise.all([
-        generateMVPProposal(processedGaps, searchQuery, relevantJobs),
-        generateDetailedProductRoadmap(processedGaps, searchQuery, relevantJobs, relevantJobs.flatMap(job => job.competitors))
-      ]);
+      // Generate unsolved problems roadmap using GPT
+      const productRoadmap = await generateUnsolvedProblemsRoadmap(
+        processedGaps, 
+        searchQuery, 
+        relevantJobs, 
+        relevantJobs.flatMap(job => job.competitors)
+      );
 
       const totalMarketSize = processedGaps.reduce((sum, gap) => {
         const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
         return sum + parseFloat(marketSize || '0');
       }, 0);
 
-      // Get all related opportunities from market gaps
-      const allRelatedOpportunities = processedGaps.flatMap(gap => getRelatedJobs(gap));
-      const uniqueRelatedOpportunities = allRelatedOpportunities.filter((job, index, self) => 
-        index === self.findIndex(j => j.id === job.id)
-      );
-
-      // Get all competitor companies from relevant jobs
-      const allCompetitorCompanies = relevantJobs.flatMap(job => job.competitors);
-      const uniqueCompetitorCompanies = allCompetitorCompanies.filter((comp, index, self) => 
-        index === self.findIndex(c => c.name === comp.name)
-      );
-
       const content = {
-        title: 'Comprehensive Product Development Strategy & Roadmap',
+        title: 'Strategic Product Roadmap: Addressing Unsolved Problems',
         marketGaps: processedGaps,
         totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
         generatedDate: new Date().toLocaleDateString(),
-        mvpProposal,
         productRoadmap,
-        searchQuery,
-        relatedOpportunities: uniqueRelatedOpportunities,
-        competitorCompanies: uniqueCompetitorCompanies
+        searchQuery
       };
 
       // Try to use the advanced PDF generator first, fallback to simple HTML
@@ -180,16 +167,18 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         generateSimplePDF(content);
       }
     } catch (error) {
-      console.error('Error generating MVP proposal:', error);
-      alert('Failed to generate MVP proposal. Please try again.');
+      console.error('Error generating unsolved problems roadmap:', error);
+      alert('Failed to generate unsolved problems roadmap. Please try again.');
     } finally {
       // Restore button state
       if (button) {
         button.disabled = false;
-        button.textContent = originalText || 'Download Tech Strategy';
+        button.textContent = originalText || 'Get Unsolved Problems Roadmap';
       }
     }
   };
+
+
 
   return (
     <div className="space-y-6">
@@ -328,12 +317,17 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
             >
               <Download className="h-5 w-5" />
               <FileText className="h-5 w-5" />
-              Get Detailed Product Roadmap
+              Get Unsolved Problems Roadmap
             </Button>
           </div>
-          <p className="text-center text-sm text-muted-foreground">
-            Build a product roadmap to solve identified market gaps with competitive advantages
-          </p>
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Generate a strategic product roadmap focused on what's not being solved and the functionality needed
+            </p>
+            <p className="text-xs text-orange-600 font-medium">
+              ⚠️ This roadmap contains strategic suggestions that should be adapted to your platform's specific needs
+            </p>
+          </div>
         </section>
       )}
 

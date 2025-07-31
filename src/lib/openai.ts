@@ -36,6 +36,8 @@ export interface MVPProposal {
 export interface ProductRoadmap {
   title: string;
   executiveSummary: string;
+  missionStatement: string;
+  visionStatement: string;
   marketOpportunity: string;
   productVision: string;
   competitiveEdge: string;
@@ -560,6 +562,8 @@ export const generateDetailedProductRoadmap = async (
     return {
       title: roadmap.title || `Product Roadmap: ${marketGaps[0]?.title || 'Market Opportunity'}`,
       executiveSummary: roadmap.executiveSummary || 'Comprehensive product roadmap addressing identified market gaps with competitive advantages.',
+      missionStatement: roadmap.missionStatement || 'To empower organizations to solve previously unsolved market problems by providing innovative, user-centric solutions that address critical gaps in existing offerings.',
+      visionStatement: roadmap.visionStatement || 'To become the leading platform that transforms how businesses identify, understand, and solve unsolved market problems, creating a world where every organization can systematically address unmet needs.',
       marketOpportunity: roadmap.marketOpportunity || 'Significant market opportunity requiring innovative product solution.',
       productVision: roadmap.productVision || 'Vision for a market-leading product that addresses key pain points.',
       competitiveEdge: roadmap.competitiveEdge || 'Unique competitive advantages over existing solutions.',
@@ -615,6 +619,285 @@ export const generateDetailedProductRoadmap = async (
   }
 };
 
+export const generateUnsolvedProblemsRoadmap = async (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[],
+  competitorCompanies: Competitor[]
+): Promise<ProductRoadmap> => {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a senior product strategist and business consultant with deep expertise in identifying unsolved market problems and creating strategic product roadmaps. 
+          
+          Your task is to analyze what's NOT being solved in the market and create a comprehensive 6-month to 1-year product roadmap that addresses these gaps with specific functionality requirements.
+          
+          CRITICAL: This roadmap should be presented as SUGGESTIONS ONLY. The user must ground these recommendations in their own platform's specific needs, capabilities, and constraints.
+          
+          Focus on:
+          - Identifying specific problems that existing solutions fail to address
+          - Required functionality to solve these problems
+          - Realistic 6-month to 1-year development timeline
+          - Clear competitive advantages over existing solutions
+          - Measurable success metrics
+          - Resource requirements and implementation considerations
+          
+          Always emphasize that these are strategic suggestions that need to be adapted to the user's specific context and platform capabilities.`
+        },
+        {
+          role: "user",
+          content: `Analyze the following market data and create a product roadmap focused on what's NOT being solved and the specific functionality needed:
+          
+          Search Query: "${searchQuery}"
+          
+          Market Gaps Identified:
+          ${marketGaps.map((gap, index) => `
+            ${index + 1}. ${gap.title}
+            - Description: ${gap.description}
+            - Market Size: ${gap.estimatedMarketSize}
+            - Gap Intensity: ${gap.gapSize}/10
+            - Difficulty: ${gap.difficulty}/10
+            - Industry: ${gap.industry}
+            - Key Insights: ${gap.keyInsights.join(', ')}
+          `).join('\n')}
+          
+          Relevant Market Opportunities:
+          ${relevantJobs.map(job => `- ${job.title} (${job.industry}): ${job.description}`).join('\n')}
+          
+          Competitor Companies:
+          ${competitorCompanies.map(comp => `- ${comp.name}: ${comp.description} (Strengths: ${comp.strengths.join(', ')}, Weaknesses: ${comp.weaknesses.join(', ')})`).join('\n')}
+          
+          Generate a strategic product roadmap that:
+          1. Creates a clear mission statement that defines the purpose and direction
+          2. Develops a compelling vision statement that outlines the desired future state
+          3. Identifies specific problems that existing solutions fail to address adequately
+          4. Outlines the exact functionality needed to solve these problems
+          5. Provides a realistic 6-month to 1-year development timeline
+          6. Analyzes what competitors are missing or doing poorly
+          7. Defines clear competitive advantages and differentiation
+          8. Establishes measurable success metrics
+          9. Outlines resource requirements and implementation considerations
+          
+          IMPORTANT: Frame this as strategic suggestions that the user should adapt to their own platform's specific needs, capabilities, and constraints. Emphasize that this roadmap should be grounded in their unique context and requirements. The mission and vision statements should serve as the north star for product development decisions.`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 4000
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse the JSON response
+    const roadmap = JSON.parse(response);
+    
+    // Validate and ensure all required fields are present
+    return {
+      title: roadmap.title || `Strategic Product Roadmap: Addressing Unsolved Problems`,
+      executiveSummary: roadmap.executiveSummary || 'Strategic product roadmap focusing on unsolved market problems and required functionality. IMPORTANT: These are suggestions that should be adapted to your specific platform needs and capabilities.',
+      missionStatement: roadmap.missionStatement || 'To empower organizations to solve previously unsolved market problems by providing innovative, user-centric solutions that address critical gaps in existing offerings.',
+      visionStatement: roadmap.visionStatement || 'To become the leading platform that transforms how businesses identify, understand, and solve unsolved market problems, creating a world where every organization can systematically address unmet needs.',
+      marketOpportunity: roadmap.marketOpportunity || 'Significant opportunity to address problems that existing solutions fail to solve adequately.',
+      productVision: roadmap.productVision || 'Vision for a product that addresses specific unsolved problems with innovative functionality.',
+      competitiveEdge: roadmap.competitiveEdge || 'Unique advantages by solving problems that competitors fail to address.',
+      revenuePotential: {
+        conservative: roadmap.revenuePotential?.conservative || '$500K - $2M annually',
+        moderate: roadmap.revenuePotential?.moderate || '$2M - $8M annually',
+        aggressive: roadmap.revenuePotential?.aggressive || '$8M - $20M annually',
+        assumptions: Array.isArray(roadmap.revenuePotential?.assumptions) ? roadmap.revenuePotential.assumptions : [
+          'Focus on solving specific unsolved problems',
+          'Target underserved market segments',
+          'Competitive differentiation through problem-solving',
+          'Value-based pricing for unique solutions'
+        ]
+      },
+      productFeatures: {
+        phase1: Array.isArray(roadmap.productFeatures?.phase1) ? roadmap.productFeatures.phase1 : ['Core problem-solving functionality', 'Basic user interface', 'Essential integrations'],
+        phase2: Array.isArray(roadmap.productFeatures?.phase2) ? roadmap.productFeatures.phase2 : ['Advanced problem-solving features', 'Enhanced user experience', 'Additional integrations'],
+        phase3: Array.isArray(roadmap.productFeatures?.phase3) ? roadmap.productFeatures.phase3 : ['Advanced analytics and insights', 'Enterprise features', 'Market expansion']
+      },
+      competitiveAnalysis: {
+        competitors: Array.isArray(roadmap.competitiveAnalysis?.competitors) ? roadmap.competitiveAnalysis.competitors : [],
+        ourAdvantages: Array.isArray(roadmap.competitiveAnalysis?.ourAdvantages) ? roadmap.competitiveAnalysis.ourAdvantages : ['Solving specific unsolved problems', 'Superior user experience', 'Better functionality']
+      },
+      goToMarketStrategy: {
+        targetSegments: Array.isArray(roadmap.goToMarketStrategy?.targetSegments) ? roadmap.goToMarketStrategy.targetSegments : ['Users with unsolved problems', 'Underserved market segments'],
+        channels: Array.isArray(roadmap.goToMarketStrategy?.channels) ? roadmap.goToMarketStrategy.channels : ['Direct problem-focused marketing', 'Digital channels', 'Strategic partnerships'],
+        pricing: roadmap.goToMarketStrategy?.pricing || 'Value-based pricing for problem-solving solutions',
+        partnerships: Array.isArray(roadmap.goToMarketStrategy?.partnerships) ? roadmap.goToMarketStrategy.partnerships : ['Problem-focused partners', 'Technology partners', 'Industry experts']
+      },
+      successMetrics: {
+        userMetrics: Array.isArray(roadmap.successMetrics?.userMetrics) ? roadmap.successMetrics.userMetrics : ['Problem resolution rate', 'User satisfaction', 'User retention'],
+        businessMetrics: Array.isArray(roadmap.successMetrics?.businessMetrics) ? roadmap.successMetrics.businessMetrics : ['Revenue from problem-solving', 'Customer lifetime value', 'Market differentiation'],
+        marketMetrics: Array.isArray(roadmap.successMetrics?.marketMetrics) ? roadmap.successMetrics.marketMetrics : ['Market share in problem-solving', 'Brand recognition', 'Competitive positioning']
+      },
+      timeline: {
+        phase1: roadmap.timeline?.phase1 || '0-6 months',
+        phase2: roadmap.timeline?.phase2 || '6-9 months',
+        phase3: roadmap.timeline?.phase3 || '9-12 months',
+        totalTimeline: roadmap.timeline?.totalTimeline || '6-12 months'
+      },
+      resourceRequirements: {
+        team: Array.isArray(roadmap.resourceRequirements?.team) ? roadmap.resourceRequirements.team : ['Product Manager', 'Development Team', 'Problem-solving Specialists'],
+        technology: Array.isArray(roadmap.resourceRequirements?.technology) ? roadmap.resourceRequirements.technology : ['Problem-solving platform', 'Analytics tools', 'Integration capabilities'],
+        funding: roadmap.resourceRequirements?.funding || '$200K - $1M',
+        partnerships: Array.isArray(roadmap.resourceRequirements?.partnerships) ? roadmap.resourceRequirements.partnerships : ['Problem domain experts', 'Technology partners', 'Industry specialists']
+      }
+    };
+
+  } catch (error) {
+    console.error('OpenAI API error for unsolved problems roadmap:', error);
+    
+    // Fallback roadmap
+    return generateFallbackUnsolvedProblemsRoadmap(marketGaps, searchQuery, relevantJobs, competitorCompanies);
+  }
+};
+
+const generateFallbackUnsolvedProblemsRoadmap = (
+  marketGaps: MarketGap[],
+  searchQuery: string,
+  relevantJobs: JobToBeDone[],
+  competitorCompanies: Competitor[]
+): ProductRoadmap => {
+  const primaryGap = marketGaps[0] || {
+    title: 'Unsolved Market Problem',
+    description: 'Addressing specific problems not solved by existing solutions',
+    estimatedMarketSize: '$1.5B',
+    industry: 'Technology'
+  };
+
+  return {
+    title: `Strategic Product Roadmap: Addressing Unsolved Problems`,
+    executiveSummary: `Strategic product roadmap focusing on unsolved market problems and required functionality. IMPORTANT: These are suggestions that should be adapted to your specific platform needs and capabilities.`,
+    missionStatement: `To empower organizations to solve previously unsolved market problems by providing innovative, user-centric solutions that address critical gaps in existing offerings.`,
+    visionStatement: `To become the leading platform that transforms how businesses identify, understand, and solve unsolved market problems, creating a world where every organization can systematically address unmet needs.`,
+    marketOpportunity: `Significant opportunity to address problems that existing solutions fail to solve adequately in the ${primaryGap.industry} sector.`,
+    productVision: `To become the leading solution for addressing specific unsolved problems with innovative functionality and superior user experience.`,
+    competitiveEdge: `Unique advantages by solving problems that competitors fail to address, with focus on specific functionality gaps.`,
+    revenuePotential: {
+      conservative: '$500K - $2M annually',
+      moderate: '$2M - $8M annually',
+      aggressive: '$8M - $20M annually',
+      assumptions: [
+        'Focus on solving specific unsolved problems',
+        'Target underserved market segments',
+        'Competitive differentiation through problem-solving',
+        'Value-based pricing for unique solutions'
+      ]
+    },
+    productFeatures: {
+      phase1: [
+        'Core problem-solving functionality',
+        'Basic user interface for problem identification',
+        'Essential integrations with existing systems',
+        'Problem tracking and resolution workflows'
+      ],
+      phase2: [
+        'Advanced problem-solving features',
+        'Enhanced user experience and interface',
+        'Additional integrations and APIs',
+        'Analytics and reporting for problem patterns'
+      ],
+      phase3: [
+        'Advanced analytics and insights',
+        'Enterprise features and scalability',
+        'AI-powered problem prediction',
+        'Market expansion and international features'
+      ]
+    },
+    competitiveAnalysis: {
+      competitors: competitorCompanies.map(comp => ({
+        name: comp.name,
+        offerings: comp.strengths,
+        weaknesses: comp.weaknesses,
+        marketShare: comp.marketShare || 'N/A'
+      })),
+      ourAdvantages: [
+        'Solving specific unsolved problems that competitors ignore',
+        'Superior user experience focused on problem resolution',
+        'Better functionality for addressing pain points',
+        'Faster time to problem resolution',
+        'More comprehensive problem-solving approach'
+      ]
+    },
+    goToMarketStrategy: {
+      targetSegments: [
+        'Users with specific unsolved problems',
+        'Underserved market segments',
+        'Early adopters seeking innovative solutions',
+        'Organizations with clear pain points'
+      ],
+      channels: [
+        'Direct problem-focused marketing',
+        'Digital channels and content marketing',
+        'Strategic partnerships with problem domain experts',
+        'Industry conferences and events'
+      ],
+      pricing: 'Value-based pricing for problem-solving solutions with clear ROI demonstration',
+      partnerships: [
+        'Problem domain experts and consultants',
+        'Technology partners for integrations',
+        'Industry specialists and thought leaders',
+        'Service providers in related areas'
+      ]
+    },
+    successMetrics: {
+      userMetrics: [
+        'Problem resolution rate and time',
+        'User satisfaction with problem-solving',
+        'User retention and engagement',
+        'Problem identification accuracy'
+      ],
+      businessMetrics: [
+        'Revenue from problem-solving solutions',
+        'Customer lifetime value',
+        'Market differentiation metrics',
+        'Competitive advantage indicators'
+      ],
+      marketMetrics: [
+        'Market share in problem-solving segments',
+        'Brand recognition for problem-solving',
+        'Competitive positioning against existing solutions',
+        'Market penetration in underserved areas'
+      ]
+    },
+    timeline: {
+      phase1: '0-6 months',
+      phase2: '6-9 months',
+      phase3: '9-12 months',
+      totalTimeline: '6-12 months'
+    },
+    resourceRequirements: {
+      team: [
+        'Product Manager with problem-solving focus',
+        'Development Team with domain expertise',
+        'Problem-solving Specialists',
+        'UX/UI Designers for problem-focused interfaces',
+        'Data Analysts for problem pattern analysis'
+      ],
+      technology: [
+        'Problem-solving platform and tools',
+        'Analytics and reporting tools',
+        'Integration capabilities and APIs',
+        'User experience optimization tools',
+        'Data collection and analysis systems'
+      ],
+      funding: '$200K - $1M for initial development and market validation',
+      partnerships: [
+        'Problem domain experts and consultants',
+        'Technology partners for core functionality',
+        'Industry specialists for market insights',
+        'Service providers for implementation support'
+      ]
+    }
+  };
+};
+
 const generateFallbackProductRoadmap = (
   marketGaps: MarketGap[],
   searchQuery: string,
@@ -631,6 +914,8 @@ const generateFallbackProductRoadmap = (
   return {
     title: `Product Roadmap: ${primaryGap.title}`,
     executiveSummary: `Comprehensive product roadmap addressing the identified market gap in ${primaryGap.title.toLowerCase()} with clear competitive advantages and revenue potential.`,
+    missionStatement: `To empower organizations to solve previously unsolved market problems by providing innovative, user-centric solutions that address critical gaps in existing offerings.`,
+    visionStatement: `To become the leading platform that transforms how businesses identify, understand, and solve unsolved market problems, creating a world where every organization can systematically address unmet needs.`,
     marketOpportunity: `Significant opportunity in ${primaryGap.industry} sector with ${primaryGap.estimatedMarketSize} market size and clear pain points requiring innovative solutions.`,
     productVision: `To become the leading solution in ${primaryGap.industry} by addressing key market gaps with superior technology and user experience.`,
     competitiveEdge: `Unique combination of advanced technology, superior user experience, and competitive pricing that addresses gaps in current market offerings.`,

@@ -6,11 +6,8 @@ export interface PDFContent {
   marketGaps: MarketGap[];
   totalMarketSize: string;
   generatedDate: string;
-  mvpProposal?: MVPProposal;
   productRoadmap?: ProductRoadmap;
   searchQuery?: string;
-  relatedOpportunities?: JobToBeDone[];
-  competitorCompanies?: Competitor[];
 }
 
 export const generateCompetitiveTechPDF = (content: PDFContent) => {
@@ -328,212 +325,60 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
           </ul>
         </div>
         
-        ${content.relatedOpportunities && content.relatedOpportunities.length > 0 ? `
-        <div class="page-break"></div>
-        
-        <div class="header">
-          <h1>Related Market Opportunities</h1>
-          <div class="subtitle">Identified opportunities aligned with market analysis</div>
-        </div>
-        
-        <div class="gap-section">
-          <div class="grid gap-4">
-            ${content.relatedOpportunities.map((opportunity, index) => `
-              <div class="gap-card">
-                <div class="gap-header">
-                  <h3 class="gap-title">${opportunity.title}</h3>
-                  <div class="gap-number">#${index + 1}</div>
-                </div>
-                
-                <p class="gap-description">${opportunity.description}</p>
-                
-                <div class="gap-metrics">
-                  <div class="gap-metric">
-                    <div class="gap-metric-value">${opportunity.industry}</div>
-                    <div class="gap-metric-label">Industry</div>
-                  </div>
-                  <div class="gap-metric">
-                    <div class="gap-metric-value">${opportunity.profitPotential.revenue}</div>
-                    <div class="gap-metric-label">Revenue Potential</div>
-                  </div>
-                  <div class="gap-metric">
-                    <div class="gap-metric-value">${opportunity.competitionLevel}</div>
-                    <div class="gap-metric-label">Competition Level</div>
-                  </div>
-                  <div class="gap-metric">
-                    <div class="gap-metric-value">${opportunity.marketSize}</div>
-                    <div class="gap-metric-label">Market Size</div>
-                  </div>
-                </div>
-                
-                <div class="gap-insights">
-                  <h4>Pain Points</h4>
-                  <div class="insight-tags">
-                    ${opportunity.painPoints.map(point => `<span class="insight-tag">${point}</span>`).join('')}
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        ${content.competitorCompanies && content.competitorCompanies.length > 0 ? `
-        <div class="page-break"></div>
-        
-        <div class="header">
-          <h1>Competitive Landscape Analysis</h1>
-          <div class="subtitle">Key competitors and market positioning</div>
-        </div>
-        
-        <div class="gap-section">
-          <div class="grid gap-4">
-            ${content.competitorCompanies.map((competitor, index) => `
-              <div class="gap-card">
-                <div class="gap-header">
-                  <h3 class="gap-title">${competitor.name}</h3>
-                  <div class="gap-number">#${index + 1}</div>
-                </div>
-                
-                <p class="gap-description">${competitor.description}</p>
-                
-                <div class="gap-metrics">
-                  <div class="gap-metric">
-                    <div class="gap-metric-value">${competitor.marketShare || 'N/A'}</div>
-                    <div class="gap-metric-label">Market Share</div>
-                  </div>
-                </div>
-                
-                <div class="gap-insights">
-                  <h4>Competitive Strengths</h4>
-                  <div class="insight-tags">
-                    ${competitor.strengths.map(strength => `<span class="insight-tag" style="background: #ecfdf5; color: #059669;">${strength}</span>`).join('')}
-                  </div>
-                  
-                  <h4>Competitive Weaknesses</h4>
-                  <div class="insight-tags">
-                    ${competitor.weaknesses.map(weakness => `<span class="insight-tag" style="background: #fef2f2; color: #dc2626;">${weakness}</span>`).join('')}
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        ${content.mvpProposal ? `
-        <div class="page-break"></div>
-        
-        <div class="header">
-          <h1>MVP Development Proposal</h1>
-          <div class="subtitle">Strategic Implementation Plan for Market Opportunity</div>
-        </div>
-        
-        <div class="executive-summary">
-          <h2>Executive Summary</h2>
-          <p>${content.mvpProposal.executiveSummary}</p>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Problem Statement</h2>
-          <div class="gap-card">
-            <p class="gap-description">${content.mvpProposal.problemStatement}</p>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Solution Overview</h2>
-          <div class="gap-card">
-            <p class="gap-description">${content.mvpProposal.solutionOverview}</p>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Target Market & Competitive Advantage</h2>
-          <div class="gap-card">
-            <h3 class="gap-title">Target Market</h3>
-            <p class="gap-description">${content.mvpProposal.targetMarket}</p>
-            
-            <h3 class="gap-title">Competitive Advantage</h3>
-            <p class="gap-description">${content.mvpProposal.competitiveAdvantage}</p>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Technical Requirements</h2>
-          <div class="gap-card">
-            <div class="insight-tags">
-              ${content.mvpProposal.technicalRequirements.map(req => `<span class="insight-tag">${req}</span>`).join('')}
-            </div>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Business Model & Go-to-Market</h2>
-          <div class="gap-card">
-            <h3 class="gap-title">Business Model</h3>
-            <p class="gap-description">${content.mvpProposal.businessModel}</p>
-            
-            <h3 class="gap-title">Go-to-Market Strategy</h3>
-            <p class="gap-description">${content.mvpProposal.goToMarketStrategy}</p>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Risk Assessment</h2>
-          <div class="gap-card">
-            <div class="insight-tags">
-              ${content.mvpProposal.riskAssessment.map(risk => `<span class="insight-tag" style="background: #fef2f2; color: #dc2626;">${risk}</span>`).join('')}
-            </div>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Success Metrics</h2>
-          <div class="gap-card">
-            <div class="insight-tags">
-              ${content.mvpProposal.successMetrics.map(metric => `<span class="insight-tag" style="background: #ecfdf5; color: #059669;">${metric}</span>`).join('')}
-            </div>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Timeline & Resources</h2>
-          <div class="gap-card">
-            <h3 class="gap-title">Timeline</h3>
-            <p class="gap-description">${content.mvpProposal.timeline}</p>
-            
-            <h3 class="gap-title">Resource Requirements</h3>
-            <p class="gap-description">${content.mvpProposal.resourceRequirements}</p>
-          </div>
-        </div>
-        
-        <div class="gap-section">
-          <h2>Market Validation</h2>
-          <div class="gap-card">
-            <p class="gap-description">${content.mvpProposal.marketValidation}</p>
-          </div>
-        </div>
-        
-        <div class="recommendations">
-          <h2>Next Steps</h2>
-          <ul>
-            ${content.mvpProposal.nextSteps.map(step => `<li>${step}</li>`).join('')}
-          </ul>
-        </div>
-        ` : ''}
+
         
         ${content.productRoadmap ? `
         <div class="page-break"></div>
         
         <div class="header">
-          <h1>Detailed Product Roadmap</h1>
-          <div class="subtitle">Strategic Product Development Plan with Competitive Analysis</div>
+          <h1>${content.productRoadmap.title.includes('Unsolved Problems') ? 'Strategic Product Roadmap: Addressing Unsolved Problems' : 'Detailed Product Roadmap'}</h1>
+          <div class="subtitle">${content.productRoadmap.title.includes('Unsolved Problems') ? 'Strategic Suggestions for Problem-Solving Product Development' : 'Strategic Product Development Plan with Competitive Analysis'}</div>
         </div>
+        
+        ${content.productRoadmap.title.includes('Unsolved Problems') ? `
+        <div class="executive-summary" style="background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%); border-left-color: #ef4444;">
+          <h2>⚠️ IMPORTANT DISCLAIMER</h2>
+          <p><strong>This roadmap contains strategic suggestions only.</strong> The recommendations provided are based on market analysis and should be carefully adapted to your specific platform's needs, capabilities, and constraints. You must ground these suggestions in your own unique context, technical requirements, and business objectives.</p>
+          <p><strong>Key considerations for implementation:</strong></p>
+          <ul>
+            <li>Evaluate each suggestion against your platform's current capabilities</li>
+            <li>Consider your team's expertise and available resources</li>
+            <li>Assess technical feasibility within your existing architecture</li>
+            <li>Validate market assumptions with your specific target audience</li>
+            <li>Adapt timelines and resource requirements to your constraints</li>
+          </ul>
+        </div>
+        ` : ''}
         
         <div class="executive-summary">
           <h2>Executive Summary</h2>
           <p>${content.productRoadmap.executiveSummary}</p>
+        </div>
+        
+        <div class="gap-section">
+          <h2>Mission & Vision Alignment</h2>
+          <div class="gap-card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 5px solid #0284c7;">
+            <h3 class="gap-title" style="color: #0369a1;">Mission Statement</h3>
+            <p class="gap-description" style="font-style: italic; color: #0c4a6e; margin-bottom: 20px;">
+              ${content.productRoadmap.missionStatement}
+            </p>
+            
+            <h3 class="gap-title" style="color: #0369a1;">Vision Statement</h3>
+            <p class="gap-description" style="font-style: italic; color: #0c4a6e; margin-bottom: 20px;">
+              ${content.productRoadmap.visionStatement}
+            </p>
+            
+            <div class="gap-insights">
+              <h4 style="color: #0369a1;">North Star Alignment</h4>
+              <div class="insight-tags">
+                <span class="insight-tag" style="background: #dbeafe; color: #1e40af;">Problem-First Approach</span>
+                <span class="insight-tag" style="background: #dbeafe; color: #1e40af;">User-Centric Solutions</span>
+                <span class="insight-tag" style="background: #dbeafe; color: #1e40af;">Innovation-Driven</span>
+                <span class="insight-tag" style="background: #dbeafe; color: #1e40af;">Sustainable Impact</span>
+                <span class="insight-tag" style="background: #dbeafe; color: #1e40af;">Competitive Advantage</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="gap-section">
@@ -711,6 +556,22 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
             </div>
           </div>
         </div>
+        
+        ${content.productRoadmap.title.includes('Unsolved Problems') ? `
+        <div class="recommendations" style="background: linear-gradient(135deg, #fef2f2 0%, #fecaca 100%); border-left-color: #ef4444;">
+          <h2>Implementation Guidance</h2>
+          <p><strong>Remember:</strong> This roadmap is a strategic framework that requires customization for your specific context.</p>
+          <ul>
+            <li><strong>Validate Assumptions:</strong> Test all market assumptions with your target audience</li>
+            <li><strong>Assess Resources:</strong> Evaluate team capabilities and available funding</li>
+            <li><strong>Technical Feasibility:</strong> Review each feature against your current architecture</li>
+            <li><strong>Timeline Reality:</strong> Adjust development phases based on your team size and expertise</li>
+            <li><strong>Market Fit:</strong> Ensure solutions align with your specific market segment</li>
+            <li><strong>Competitive Analysis:</strong> Update competitor analysis for your specific market</li>
+          </ul>
+          <p><em>Use this roadmap as a starting point for your own strategic planning, not as a definitive implementation guide.</em></p>
+        </div>
+        ` : ''}
         ` : ''}
         
         <div class="footer">
