@@ -8,12 +8,14 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export const SearchBar = ({ 
   onSearch, 
   placeholder = "Ask AI about unfulfilled jobs to be done...",
-  isLoading = false 
+  isLoading = false,
+  disabled = false
 }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -89,12 +91,13 @@ export const SearchBar = ({
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => { setIsFocused(true); if (query.length >= 3) setShowSuggestions(true); }}
             onBlur={() => { setIsFocused(false); setTimeout(() => setShowSuggestions(false), 200); }}
-            placeholder={placeholder}
-            className="pl-12 pr-24 h-14 text-lg bg-white/80 backdrop-blur-sm border-0 shadow-apple rounded-2xl focus:shadow-hover transition-all duration-apple"
+            placeholder={disabled ? "Sign up to continue searching..." : placeholder}
+            disabled={disabled}
+            className="pl-12 pr-24 h-14 text-lg bg-white/80 backdrop-blur-sm border-0 shadow-apple rounded-2xl focus:shadow-hover transition-all duration-apple disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <Button
             type="submit"
-            disabled={!query.trim() || isLoading}
+            disabled={!query.trim() || isLoading || disabled}
             className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 px-6 bg-gradient-primary hover:opacity-90 transition-all duration-apple rounded-xl disabled:opacity-50"
           >
             {isLoading ? (

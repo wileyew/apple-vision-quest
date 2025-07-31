@@ -1,5 +1,5 @@
 
-import React, { FC, useState, useMemo } from 'react';
+import React, { FC, useState, useMemo, useEffect } from 'react';
 import { SearchBar } from '@/components/SearchBar';
 import { JobCard } from '@/components/JobCard';
 import { JobDetails } from '@/components/JobDetails';
@@ -13,11 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain } from 'lucide-react';
+import { TrendingUp, Lightbulb, Target, DollarSign, BarChart3, Brain, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import heroImage from '@/assets/hero-opportunities.jpg';
 
 const Index: FC = () => {
+  const { user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<JobToBeDone | null>(null);
   const [searchAnalysis, setSearchAnalysis] = useState<SearchAnalysis | null>(null);
   const [previousSearchAnalysis, setPreviousSearchAnalysis] = useState<SearchAnalysis | null>(null);
@@ -31,6 +33,7 @@ const Index: FC = () => {
   const [selectedTechnologyDrillDown, setSelectedTechnologyDrillDown] = useState<string | null>(null);
   const [lastSearchQuery, setLastSearchQuery] = useState<string>('');
   const [showingAllOpportunities, setShowingAllOpportunities] = useState<boolean>(true);
+  const [queryCount, setQueryCount] = useState<number>(0);
 
   // Compute industry insights
   const industryInsights = useMemo(() => {
@@ -81,18 +84,54 @@ const Index: FC = () => {
   const totalCount = jobsToBeDone.length;
   const resultsCount = searchAnalysis?.relevantOpportunities?.length || 0;
 
+  // Load query count from localStorage on component mount
+  useEffect(() => {
+    const savedQueryCount = localStorage.getItem('anonymousQueryCount');
+    if (savedQueryCount) {
+      setQueryCount(parseInt(savedQueryCount, 10));
+    }
+  }, []);
+
+  // Ensure active tab is valid based on search state
+  useEffect(() => {
+    if (!hasSearched && activeTab === 'insights') {
+      setActiveTab('opportunities');
+    }
+  }, [hasSearched, activeTab]);
+
+  // Check if user has exceeded query limit
+  const hasExceededQueryLimit = !user && queryCount >= 1;
+
   // Search handler
   const handleSearch = async (query: string) => {
+    // Check if user has exceeded query limit
+    if (hasExceededQueryLimit) {
+      toast({
+        variant: 'destructive',
+        title: 'Query limit reached',
+        description: 'Please sign up or sign in to continue using AI-powered search.',
+      });
+      return;
+    }
+
     // Clear previous industry cards immediately
     setSearchAnalysis(prev => (prev ? { ...prev, heatmapData: [] } : null));
     setIsSearching(true);
     setHasSearched(true);
     setLastSearchQuery(query);
     if (searchAnalysis) setPreviousSearchAnalysis(searchAnalysis);
+    
     try {
       const analysis = await analyzeSearchQuery(query, jobsToBeDone);
       const hasHeat = !!analysis.heatmapData?.length;
       const hasGaps = !!analysis.marketGaps?.length;
+
+      // Increment query count for non-logged-in users
+      if (!user) {
+        const newQueryCount = queryCount + 1;
+        setQueryCount(newQueryCount);
+        localStorage.setItem('anonymousQueryCount', newQueryCount.toString());
+      }
 
       if (!analysis.relevantOpportunities?.length && !hasHeat && !hasGaps) {
         toast({
@@ -174,7 +213,35 @@ const Index: FC = () => {
           </p>
         </section>
         <section className="max-w-4xl mx-auto mb-16">
-          <SearchBar onSearch={handleSearch} isLoading={isSearching} />
+          <SearchBar onSearch={handleSearch} isLoading={isSearching} disabled={hasExceededQueryLimit} />
+          
+          {/* Query limit indicator for non-logged-in users */}
+          {!user && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Lock className="h-5 w-5 text-orange-600" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-orange-800">
+                    {hasExceededQueryLimit 
+                      ? 'You have used your free AI search. Sign up for unlimited access!' 
+                      : `Free AI search: ${1 - queryCount} remaining`
+                    }
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Sign up to unlock unlimited AI-powered market analysis and product roadmaps.
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  onClick={() => window.location.href = '/signup'}
+                >
+                  Sign Up
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Stats */}
@@ -236,19 +303,21 @@ const Index: FC = () => {
             onValueChange={setActiveTab}
             className="max-w-7xl mx-auto"
           >
-            <TabsList className="grid grid-cols-3 mb-8">
+            <TabsList className={`grid mb-8 ${hasSearched ? 'grid-cols-2' : 'grid-cols-1'}`}>
               {showingAllOpportunities && (
                 <TabsTrigger value="opportunities">
                   Opportunities
                   {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
                 </TabsTrigger>
               )}
-              <TabsTrigger value="insights">
-                AI Insights
-                {searchAnalysis?.marketGaps?.length ? (
-                  <Badge>{searchAnalysis.marketGaps.length}</Badge>
-                ) : null}
-              </TabsTrigger>
+              {hasSearched && (
+                <TabsTrigger value="insights">
+                  AI Insights
+                  {searchAnalysis?.marketGaps?.length ? (
+                    <Badge>{searchAnalysis.marketGaps.length}</Badge>
+                  ) : null}
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Opportunities Tab */}
@@ -291,18 +360,20 @@ const Index: FC = () => {
             )}
 
             {/* Insights Tab */}
-            <TabsContent value="insights">
-              <MarketInsights
-                marketGaps={searchAnalysis?.marketGaps || []}
-                competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
-                allJobs={jobsToBeDone}
-                relevantJobs={searchAnalysis?.relevantOpportunities || []}
-                searchQuery={lastSearchQuery}
-                onGapClick={() => {}}
-                onCompetitiveAreaClick={() => {}}
-                {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}
-              />
-            </TabsContent>
+            {hasSearched && (
+              <TabsContent value="insights">
+                <MarketInsights
+                  marketGaps={searchAnalysis?.marketGaps || []}
+                  competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
+                  allJobs={jobsToBeDone}
+                  relevantJobs={searchAnalysis?.relevantOpportunities || []}
+                  searchQuery={lastSearchQuery}
+                  onGapClick={() => {}}
+                  onCompetitiveAreaClick={() => {}}
+                  {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </section>
 
