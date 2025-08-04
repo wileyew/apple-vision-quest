@@ -123,40 +123,48 @@ export const analyzeSearchQuery = async (
     // Check if the query is too generic or could be improved
     const isGoodQuery = await evaluateQueryQuality(query);
     
-    // Generate market analysis based on the query
+    // Generate comprehensive market research based on the query
     const completion = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are a market research expert analyzing business opportunities and market gaps. 
-          Given a search query, analyze the market landscape and identify opportunities, gaps, and provide insights.
+          content: `You are a senior market research analyst and business consultant with deep expertise in identifying market opportunities, analyzing competitive landscapes, and providing strategic insights.
+
+          Your task is to conduct comprehensive market research based on the user's query. You should:
+          
+          1. **Analyze the broader market landscape** - Don't limit yourself to existing opportunities, but research the entire market space
+          2. **Identify market gaps and opportunities** - Look for underserved areas, emerging trends, and unmet needs
+          3. **Provide competitive intelligence** - Analyze current players, market saturation, and competitive dynamics
+          4. **Generate actionable insights** - Focus on quantifiable opportunities with clear business potential
           
           Respond with a JSON object containing:
-          - relevantOpportunities: Array of opportunity IDs that match the query
+          - relevantOpportunities: Array of opportunity IDs from existing data that match the query (can be empty if focusing on new opportunities)
           - marketGaps: Array of market gap objects with: id, title, description, gapSize (1-10), urgency (1-10), difficulty (1-10), industry, estimatedMarketSize, keyInsights (array of strings)
           - searchSuggestion: Better search suggestion if the original query is too generic (null if query is good)
           - heatmapData: Array of heatmap objects with: industry, opportunity, intensity (0-100), revenue (number), competition (0-100), x, y coordinates
           - competitiveAnalysis: Object with: oversaturatedAreas (array), underservedAreas (array), emergingTrends (array), riskFactors (array)
           
-          Existing opportunities data: ${JSON.stringify(existingOpportunities, null, 2)}`
+          Existing opportunities data (for reference only): ${JSON.stringify(existingOpportunities, null, 2)}
+          
+          IMPORTANT: Focus on providing comprehensive market research insights rather than just matching existing opportunities.`
         },
         {
           role: "user",
-          content: `Analyze this market search query: "${query}". 
+          content: `Conduct comprehensive market research for: "${query}". 
           
-          Provide insights on:
-          1. Which existing opportunities are most relevant
-          2. New market gaps that might exist in this area
-          3. A better search suggestion if the query is too generic
-          4. Heatmap data showing opportunity intensity across different dimensions
-          5. Competitive landscape analysis
+          Provide a complete market analysis including:
+          1. **Market Landscape Analysis** - Current state, size, growth trends, key players
+          2. **Opportunity Identification** - Both existing opportunities and new market gaps
+          3. **Competitive Intelligence** - Market saturation, competitive dynamics, entry barriers
+          4. **Strategic Insights** - Actionable recommendations with quantifiable market potential
+          5. **Risk Assessment** - Market risks, challenges, and mitigation strategies
           
-          Focus on actionable insights and quantifiable market opportunities.`
+          Focus on providing deep, actionable market research that goes beyond surface-level analysis.`
         }
       ],
       temperature: 0.7,
-      max_tokens: 2000
+      max_tokens: 3000
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -321,22 +329,55 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
 
   const heatmapData = generateFallbackHeatmapData(relevantOpportunities);
   
-  // Generate simple market gap suggestions
+  // Generate comprehensive market research-based gap analysis
   const mainKeywords = query.split(' ').filter(Boolean).slice(0, 5).join(' ');
   const marketGaps: MarketGap[] = [
     {
       id: 'gap-1',
-      title: mainKeywords,
-      description: `Market gap in ${mainKeywords}`,
+      title: `Advanced ${mainKeywords} Solutions`,
+      description: `Market opportunity for next-generation ${mainKeywords} solutions with AI integration and automation`,
+      gapSize: 8,
+      urgency: 7,
+      difficulty: 6,
+      industry: relevantOpportunities[0]?.industry || 'Technology',
+      estimatedMarketSize: '$3.2B',
+      keyInsights: [
+        'Current solutions lack AI/automation capabilities',
+        'Growing demand for intelligent, scalable solutions',
+        'Technology stack maturity enables advanced features',
+        'Market consolidation creating opportunities for innovators'
+      ]
+    },
+    {
+      id: 'gap-2',
+      title: `${mainKeywords} for SMB Market`,
+      description: `Underserved small and medium business market for ${mainKeywords} solutions`,
       gapSize: 7,
       urgency: 6,
       difficulty: 5,
       industry: relevantOpportunities[0]?.industry || 'Technology',
-      estimatedMarketSize: '$2.5B',
+      estimatedMarketSize: '$1.8B',
       keyInsights: [
-        'Limited current solutions',
-        'Growing market demand',
-        'Technology enablers available'
+        'Enterprise solutions too complex for SMBs',
+        'Price sensitivity requires innovative pricing models',
+        'Need for simplified, self-service solutions',
+        'Growing SMB digital transformation demand'
+      ]
+    },
+    {
+      id: 'gap-3',
+      title: `Vertical-Specific ${mainKeywords}`,
+      description: `Industry-specific ${mainKeywords} solutions for healthcare, finance, and manufacturing`,
+      gapSize: 6,
+      urgency: 8,
+      difficulty: 7,
+      industry: relevantOpportunities[0]?.industry || 'Technology',
+      estimatedMarketSize: '$2.1B',
+      keyInsights: [
+        'Generic solutions don\'t meet industry compliance needs',
+        'Regulatory requirements driving specialized solutions',
+        'High-value, sticky customer relationships',
+        'Competitive moats through domain expertise'
       ]
     }
   ];
@@ -348,10 +389,10 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
       `Try searching for more specific terms like "AI-powered ${query} for small businesses"` : null,
     heatmapData,
     competitiveAnalysis: {
-      oversaturatedAreas: ['Consumer Apps', 'Basic SaaS'],
-      underservedAreas: ['Enterprise AI', 'Vertical-specific tools'],
-      emergingTrends: ['AI Integration', 'Sustainability', 'Remote Work'],
-      riskFactors: ['Market saturation', 'Technology changes', 'Regulatory shifts']
+      oversaturatedAreas: ['Basic SaaS platforms', 'Consumer mobile apps', 'Generic productivity tools'],
+      underservedAreas: ['AI-powered automation', 'Industry-specific solutions', 'SMB-focused platforms'],
+      emergingTrends: ['AI/ML integration', 'Sustainability focus', 'Remote work enablement', 'No-code/low-code platforms'],
+      riskFactors: ['Market consolidation', 'Technology disruption', 'Regulatory changes', 'Economic uncertainty']
     }
   };
 };
