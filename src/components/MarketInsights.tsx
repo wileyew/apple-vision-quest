@@ -20,30 +20,24 @@ import {
 import {
   AlertTriangle,
   BarChart3,
-<<<<<<< HEAD
-=======
   Building,
->>>>>>> 076f79a (fixing merge changes.)
   ExternalLink,
   Lightbulb,
   Search,
   Target,
   TrendingUp,
   TrendingUpIcon,
-<<<<<<< HEAD
-=======
   Users,
->>>>>>> 076f79a (fixing merge changes.)
   Download,
   FileText,
+  LogIn,
+  Sparkles,
 } from 'lucide-react';
 import type { MarketGap, CompetitiveAnalysis } from '@/lib/openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
 import { generateCompetitiveTechPDF, generateSimplePDF } from '@/lib/pdf-generator';
-<<<<<<< HEAD
 import { generateUnsolvedProblemsRoadmap } from '@/lib/openai';
-=======
->>>>>>> 076f79a (fixing merge changes.)
+import { useAuth } from '@/hooks/useAuth';
 
 interface MarketInsightsProps {
   marketGaps: (MarketGap | string)[];
@@ -69,7 +63,9 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   onGapClick,
   onCompetitiveAreaClick,
 }) => {
-
+  const { user } = useAuth();
+  const [selectedCompetitiveArea, setSelectedCompetitiveArea] = useState<{ area: string; type: 'oversaturated' | 'underserved' | 'trend' | 'risk' } | null>(null);
+  const [isCompetitorDialogOpen, setIsCompetitorDialogOpen] = useState(false);
 
   // Normalize gaps
   const processedMarketGaps = marketGaps.map((gap, idx) =>
@@ -114,21 +110,74 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   };
 
   const getCompetitorsForArea = (area: string): Competitor[] => {
-    const term = area.toLowerCase();
-    const pool = relevantJobs.length ? relevantJobs : allJobs;
-    const all = pool.flatMap((job) => job.competitors.filter((c) =>
-      c.name.toLowerCase().includes(term) || job.industry.toLowerCase().includes(term)
-    ));
-    const unique = all.filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
-    return unique.slice(0, 6);
+    const areaLower = area.toLowerCase();
+    const allCompetitors: Competitor[] = [];
+    
+    allJobs.forEach(job => {
+      const jobText = `${job.title} ${job.description} ${job.industry} ${job.tags.join(' ')}`.toLowerCase();
+      if (jobText.includes(areaLower) || job.industry.toLowerCase().includes(areaLower)) {
+        allCompetitors.push(...job.competitors);
+      }
+    });
+    
+    // Remove duplicates based on company name
+    const uniqueCompetitors = allCompetitors.filter((competitor, index, self) => 
+      index === self.findIndex(c => c.name === competitor.name)
+    );
+    
+    return uniqueCompetitors.slice(0, 6); // Limit to top 6 competitors
   };
 
-
+  // Handle competitive area click
+  const handleCompetitiveAreaClick = (area: string, type: 'oversaturated' | 'underserved' | 'trend' | 'risk') => {
+    setSelectedCompetitiveArea({ area, type });
+    setIsCompetitorDialogOpen(true);
+    onCompetitiveAreaClick?.(area, type);
+  };
 
   const getDifficultyColor = (d: number) =>
     d >= 8 ? 'text-red-600' : d >= 6 ? 'text-orange-600' : d >= 4 ? 'text-yellow-600' : 'text-green-600';
   const getGapSizeColor = (s: number) =>
     s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
+
+  // Export AI insights data as JSON
+  const handleExportAIInsights = () => {
+    const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
+    
+    if (processedGaps.length === 0) {
+      alert('No AI insights available for export');
+      return;
+    }
+
+    const aiInsightsData = {
+      searchQuery,
+      generatedDate: new Date().toISOString(),
+      marketGaps: processedGaps,
+      competitiveAnalysis: analysis,
+      relevantOpportunities: relevantJobs,
+      searchSuggestion,
+      summary: {
+        totalGaps: processedGaps.length,
+        totalOpportunities: relevantJobs.length,
+        industries: [...new Set(processedGaps.map(gap => gap.industry))],
+        marketSize: processedGaps.reduce((sum, gap) => {
+          const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
+          return sum + parseFloat(marketSize || '0');
+        }, 0)
+      }
+    };
+
+    const dataStr = JSON.stringify(aiInsightsData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ai-insights-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Generate PDF for unsolved problems roadmap
   const handleGeneratePDF = async () => {
@@ -139,7 +188,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
       return;
     }
 
-    // Show loading state
     const button = document.querySelector('[data-pdf-button]') as HTMLButtonElement;
     const originalText = button?.textContent;
     if (button) {
@@ -148,7 +196,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     }
 
     try {
-      // Generate unsolved problems roadmap using GPT
       const productRoadmap = await generateUnsolvedProblemsRoadmap(
         processedGaps, 
         searchQuery, 
@@ -170,7 +217,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         searchQuery
       };
 
-      // Try to use the advanced PDF generator first, fallback to simple HTML
       try {
         generateCompetitiveTechPDF(content);
       } catch (error) {
@@ -181,59 +227,12 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
       console.error('Error generating unsolved problems roadmap:', error);
       alert('Failed to generate unsolved problems roadmap. Please try again.');
     } finally {
-      // Restore button state
       if (button) {
         button.disabled = false;
         button.textContent = originalText || 'Get Unsolved Problems Roadmap';
       }
     }
   };
-
-<<<<<<< HEAD
-
-=======
-  // Handle competitive area click
-  const handleCompetitiveAreaClick = (area: string, type: 'oversaturated' | 'underserved' | 'trend' | 'risk') => {
-    setSelectedCompetitiveArea({ area, type });
-    setIsCompetitorDialogOpen(true);
-    onCompetitiveAreaClick?.(area, type);
-  };
-
-  const getDifficultyColor = (d: number) =>
-    d >= 8 ? 'text-red-600' : d >= 6 ? 'text-orange-600' : d >= 4 ? 'text-yellow-600' : 'text-green-600';
-  const getGapSizeColor = (s: number) =>
-    s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
-
-  // Generate PDF for competitive tech development
-  const handleGeneratePDF = () => {
-    const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
-    
-    if (processedGaps.length === 0) {
-      alert('No market gaps available for PDF generation');
-      return;
-    }
-
-    const totalMarketSize = processedGaps.reduce((sum, gap) => {
-      const marketSize = gap.estimatedMarketSize.replace(/[^0-9.]/g, '');
-      return sum + parseFloat(marketSize || '0');
-    }, 0);
-
-    const content = {
-      title: 'Competitive Tech Development Strategy',
-      marketGaps: processedGaps,
-      totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
-      generatedDate: new Date().toLocaleDateString()
-    };
-
-    // Try to use the advanced PDF generator first, fallback to simple HTML
-    try {
-      generateCompetitiveTechPDF(content);
-    } catch (error) {
-      console.warn('Advanced PDF generation failed, using fallback:', error);
-      generateSimplePDF(content);
-    }
-  };
->>>>>>> 076f79a (fixing merge changes.)
 
   return (
     <div className="space-y-6">
@@ -255,367 +254,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
             Identified Market Gaps
           </h3>
 
-<<<<<<< HEAD
-          {/* Gap Analysis */}
-          {(() => {
-            const themes = [...new Set(processedMarketGaps.map((g) => g.description))];
-            const features = [
-              ...new Set(
-                processedMarketGaps.flatMap((g) => g.keyInsights.filter((i) =>
-                  /solution|feature/i.test(i)
-                ))
-              ),
-            ];
-            return themes.length || features.length;
-          })() && (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-blue-800 mb-2">Market Gap Analysis</h4>
-=======
-      {/* Competitor Companies by Industry */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold flex items-center gap-2">
-          <Building className="h-5 w-5 text-green-600" />
-          Competitor Companies
-        </h3>
-        {
-          (() => {
-            // Group competitors by industry
-            const industryMap = new Map<string, Competitor[]>();
-            allJobs.forEach(job => {
-              if (!industryMap.has(job.industry)) industryMap.set(job.industry, []);
-              job.competitors.forEach((comp: Competitor) => {
-                industryMap.get(job.industry)!.push(comp);
-              });
-            });
-            return Array.from(industryMap.entries()).map(([industry, competitors]) => {
-              // Deduplicate by company name
-              const uniqueCompetitors: Competitor[] = Array.from(new Map(competitors.map(c => [c.name, c])).values());
-              return (
-                <div key={industry} className="mb-4">
-                  <h4 className="text-lg font-bold mb-2">{industry}</h4>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {uniqueCompetitors.map((comp, idx) => (
-                      <Card key={comp.name + idx} className="p-4 flex flex-col gap-2">
-                        <div className="font-semibold">{comp.name}</div>
-                        <div className="text-sm text-muted-foreground">{comp.marketShare ? `Market Share: ${comp.marketShare}` : 'Market Share: N/A'}</div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            });
-          })()
-        }
-      </div>
-
-      {/* Competitive Analysis */}
-      {analysis && (
-        <section className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-purple-600" />
-            Competitive Landscape
-          </h3>
-          <div className="grid gap-4">
-            {/* Oversaturated */}
-            {analysis.oversaturatedAreas.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500" /> Oversaturated Areas
-                  </CardTitle>
-                  <CardDescription>High competition markets</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {analysis.oversaturatedAreas.map((area, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border-l-2 border-red-500 cursor-pointer hover:bg-red-100"
-                        onClick={() => handleCompetitiveAreaClick(area, 'oversaturated')}
-                      >
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                        <span className="text-sm text-red-700">{area}</span>
-                        <ExternalLink className="h-3 w-3 text-red-500 ml-auto" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {/* Underserved */}
-            {analysis.underservedAreas.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-green-500" /> Underserved Areas
-                  </CardTitle>
-                  <CardDescription>Opportunity markets</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {analysis.underservedAreas.map((area, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border-l-2 border-green-500 cursor-pointer hover:bg-green-100"
-                        onClick={() => handleCompetitiveAreaClick(area, 'underserved')}
-                      >
-                        <Target className="h-4 w-4 text-green-500" />
-                        <span className="text-sm text-green-700">{area}</span>
-                        <ExternalLink className="h-3 w-3 text-green-500 ml-auto" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {/* Trends */}
-            {analysis.emergingTrends.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUpIcon className="h-5 w-5 text-blue-500" /> Emerging Trends
-                  </CardTitle>
-                  <CardDescription>Growth drivers</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {analysis.emergingTrends.map((trend, i) => (
-                      <Badge
-                        key={i}
-                        variant="default"
-                        className="cursor-pointer"
-                        onClick={() => handleCompetitiveAreaClick(trend, 'trend')}
-                      >
-                        {trend}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {/* Risks */}
-            {analysis.riskFactors.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-orange-500" /> Risk Factors
-                  </CardTitle>
-                  <CardDescription>Potential challenges</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {analysis.riskFactors.map((risk, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100"
-                        onClick={() => handleCompetitiveAreaClick(risk, 'risk')}
-                      >
-                        <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                        <span className="text-sm text-orange-700">{risk}</span>
-                        <ExternalLink className="h-3 w-3 text-orange-500 ml-auto" />
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Competitor Companies */}
-      {/** Companies by industry - only show relevant to search **/}
-      {relevantJobs.length > 0 && (
-        (relevantJobs).some((j) => j.competitors.length > 0)
-      ) && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-green-600" /> Competitor Companies
-              <span className="text-sm text-muted-foreground">(Based on Search)</span>
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <FileText className="h-4 w-4" />
-              Download Tech Strategy
-            </Button>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(
-              relevantJobs
-                .reduce((map, job) => {
-                  (map[job.industry] ??= []).push(...job.competitors);
-                  return map;
-                }, {} as Record<string, Competitor[]>)
-            ).map(([industry, comps]) => {
-              const unique = Object.values(
-                comps.reduce((m, c) => ({ ...m, [c.name]: c }), {})
-              ) as Competitor[];
-              return (
-                <div key={industry}>
-                  <h4 className="font-bold text-lg mb-2">{industry}</h4>
-                  <div className="grid gap-4">
-                    {unique.map((c, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-semibold">{c.name}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {c.marketShare ?? 'N/A'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{c.description}</p>
-                        <div className="text-xs text-green-600 mb-2">
-                          <strong>Strengths:</strong>{' '}{c.strengths.slice(0,2).join(', ')}
-                        </div>
-                        <div className="text-xs text-red-600">
-                          <strong>Weaknesses:</strong>{' '}{c.weaknesses.slice(0,2).join(', ')}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Show all competitors only when no search is active */}
-      {relevantJobs.length === 0 && (
-        (allJobs).some((j) => j.competitors.length > 0)
-      ) && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Building className="h-5 w-5 text-green-600" /> All Competitor Companies
-            </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <FileText className="h-4 w-4" />
-              Download Tech Strategy
-            </Button>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(
-              allJobs
-                .reduce((map, job) => {
-                  (map[job.industry] ??= []).push(...job.competitors);
-                  return map;
-                }, {} as Record<string, Competitor[]>)
-            ).map(([industry, comps]) => {
-              const unique = Object.values(
-                comps.reduce((m, c) => ({ ...m, [c.name]: c }), {})
-              ) as Competitor[];
-              return (
-                <div key={industry}>
-                  <h4 className="font-bold text-lg mb-2">{industry}</h4>
-                  <div className="grid gap-4">
-                    {unique.map((c, idx) => (
-                      <Card key={idx} className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="font-semibold">{c.name}</div>
-                          <Badge variant="outline" className="text-xs">
-                            {c.marketShare ?? 'N/A'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{c.description}</p>
-                        <div className="text-xs text-green-600 mb-2">
-                          <strong>Strengths:</strong>{' '}{c.strengths.slice(0,2).join(', ')}
-                        </div>
-                        <div className="text-xs text-red-600">
-                          <strong>Weaknesses:</strong>{' '}{c.weaknesses.slice(0,2).join(', ')}
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {/* Search Suggestions */}
-      {searchSuggestion && relevantJobs.length > 0 && (
-        <section className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <Search className="h-5 w-5 text-indigo-600" /> Suggested Searches
-          </h3>
-          <Card>
-            <CardContent>
-              {searchSuggestion.split('\n').map((s, i) => (
-                <Button key={i} variant="ghost" className="w-full text-left">
-                  {s}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Competitor Analysis Dialog */}
-      <Dialog open={isCompetitorDialogOpen} onOpenChange={setIsCompetitorDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedCompetitiveArea?.type === 'oversaturated' && <AlertTriangle className="h-5 w-5 text-red-500" />}
-              {selectedCompetitiveArea?.type === 'underserved' && <Target className="h-5 w-5 text-green-500" />}
-              {selectedCompetitiveArea?.type === 'trend' && <TrendingUp className="h-5 w-5 text-blue-500" />}
-              {selectedCompetitiveArea?.type === 'risk' && <AlertTriangle className="h-5 w-5 text-orange-500" />}
-              Competitive Analysis: {selectedCompetitiveArea?.area}
-            </DialogTitle>
-            <DialogDescription>
-              Detailed competitive landscape and market analysis for {selectedCompetitiveArea?.area}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedCompetitiveArea && (
-            <div className="space-y-6">
-              {/* Market Analysis */}
->>>>>>> 076f79a (fixing merge changes.)
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <h5 className="font-medium text-blue-700">What's Not Being Solved:</h5>
-                  <ul className="mt-1 text-sm text-blue-600 space-y-1">
-                    {Array.from(new Set(processedMarketGaps.map((g) => g.description)))
-                      .slice(0, 3)
-                      .map((t, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-blue-500 mt-1">•</span>
-                          <span>{t}</span>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-                <div>
-                  <h5 className="font-medium text-green-700">Product Functionality Needed:</h5>
-                  <ul className="mt-1 text-sm text-green-600 space-y-1">
-                    {Array.from(new Set(
-                      processedMarketGaps.flatMap((g) => g.keyInsights)
-                    ))
-                      .slice(0, 3)
-                      .map((f, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-green-500 mt-1">•</span>
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="grid gap-4">
             {processedMarketGaps.map((g) => {
               const related = getRelatedJobs(g);
@@ -634,7 +272,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                           {onGapClick && <ExternalLink className="h-4 w-4 text-muted-foreground" />}
                         </div>
                         <CardDescription className="mt-1">{g.description}</CardDescription>
-
                       </div>
                       <Badge variant="outline">{g.industry}</Badge>
                     </div>
@@ -673,10 +310,19 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Product Roadmap Button */}
+      {/* Export and PDF Buttons */}
       {processedMarketGaps.length > 0 && (
         <section className="space-y-4">
-          <div className="flex justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleExportAIInsights}
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+            >
+              <Download className="h-5 w-5" />
+              Export AI Insights Data
+            </Button>
             <Button
               variant="default"
               size="lg"
@@ -684,20 +330,59 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
               className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
               data-pdf-button
             >
-              <Download className="h-5 w-5" />
               <FileText className="h-5 w-5" />
               Get Unsolved Problems Roadmap
             </Button>
           </div>
           <div className="text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              Generate a strategic product roadmap focused on what's not being solved and the functionality needed
+              Export your AI insights as JSON data or generate a strategic product roadmap
             </p>
             <p className="text-xs text-orange-600 font-medium">
-              ⚠️ This roadmap contains strategic suggestions that should be adapted to your platform's specific needs
+              ⚠️ The roadmap contains strategic suggestions that should be adapted to your platform's specific needs
             </p>
           </div>
         </section>
+      )}
+
+      {/* Login Call-to-Action */}
+      {!user && (
+        <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-800 mb-2">
+                Unlock Advanced AI Product Roadmap Features
+              </h3>
+              <p className="text-sm text-purple-700 mb-4">
+                Sign in to collaborate with AI and cultivate a comprehensive product roadmap that incorporates your market research needs, competitive analysis, and strategic planning.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  variant="default"
+                  size="lg"
+                  onClick={() => window.location.href = '/login'}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+                >
+                  <LogIn className="h-5 w-5" />
+                  Sign In to Continue
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => window.location.href = '/signup'}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Create Account
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Competitive Analysis */}
@@ -708,7 +393,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
             Competitive Landscape
           </h3>
           <div className="grid gap-4">
-            {/* Oversaturated */}
             {analysis.oversaturatedAreas.length > 0 && (
               <Card>
                 <CardHeader>
@@ -723,7 +407,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border-l-2 border-red-500 cursor-pointer hover:bg-red-100"
-
+                        onClick={() => handleCompetitiveAreaClick(area, 'oversaturated')}
                       >
                         <AlertTriangle className="h-4 w-4 text-red-500" />
                         <span className="text-sm text-red-700">{area}</span>
@@ -734,7 +418,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                 </CardContent>
               </Card>
             )}
-            {/* Underserved */}
             {analysis.underservedAreas.length > 0 && (
               <Card>
                 <CardHeader>
@@ -749,7 +432,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border-l-2 border-green-500 cursor-pointer hover:bg-green-100"
-
+                        onClick={() => handleCompetitiveAreaClick(area, 'underserved')}
                       >
                         <Target className="h-4 w-4 text-green-500" />
                         <span className="text-sm text-green-700">{area}</span>
@@ -760,7 +443,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                 </CardContent>
               </Card>
             )}
-            {/* Trends */}
             {analysis.emergingTrends.length > 0 && (
               <Card>
                 <CardHeader>
@@ -776,7 +458,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                         key={i}
                         variant="default"
                         className="cursor-pointer"
-
+                        onClick={() => handleCompetitiveAreaClick(trend, 'trend')}
                       >
                         {trend}
                       </Badge>
@@ -785,7 +467,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                 </CardContent>
               </Card>
             )}
-            {/* Risks */}
             {analysis.riskFactors.length > 0 && (
               <Card>
                 <CardHeader>
@@ -800,7 +481,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
                       <div
                         key={i}
                         className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100"
-
+                        onClick={() => handleCompetitiveAreaClick(risk, 'risk')}
                       >
                         <span className="w-2 h-2 bg-orange-500 rounded-full" />
                         <span className="text-sm text-orange-700">{risk}</span>
@@ -815,31 +496,100 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
+      {/* Competitor Analysis Dialog */}
+      <Dialog open={isCompetitorDialogOpen} onOpenChange={setIsCompetitorDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedCompetitiveArea?.type === 'oversaturated' && <AlertTriangle className="h-5 w-5 text-red-500" />}
+              {selectedCompetitiveArea?.type === 'underserved' && <Target className="h-5 w-5 text-green-500" />}
+              {selectedCompetitiveArea?.type === 'trend' && <TrendingUp className="h-5 w-5 text-blue-500" />}
+              {selectedCompetitiveArea?.type === 'risk' && <AlertTriangle className="h-5 w-5 text-orange-500" />}
+              Competitive Analysis: {selectedCompetitiveArea?.area}
+            </DialogTitle>
+            <DialogDescription>
+              Detailed competitive landscape and market analysis for {selectedCompetitiveArea?.area}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCompetitiveArea && (
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Building className="h-4 w-4" />
+                    Market Overview
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <div className="font-medium mb-1">Market Type</div>
+                      <div className="text-muted-foreground">
+                        {selectedCompetitiveArea.type === 'oversaturated' && 'High competition market with established players'}
+                        {selectedCompetitiveArea.type === 'underserved' && 'Emerging market with growth opportunities'}
+                        {selectedCompetitiveArea.type === 'trend' && 'Technology-driven market with rapid innovation'}
+                        {selectedCompetitiveArea.type === 'risk' && 'Challenging market with potential barriers'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-
-
-
-      {/* Search Suggestions */}
-      {searchSuggestion && relevantJobs.length > 0 && (
-        <section className="space-y-4">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
-            <Search className="h-5 w-5 text-indigo-600" /> Suggested Searches
-          </h3>
-          <Card>
-            <CardContent>
-              {searchSuggestion.split('\n').map((s, i) => (
-                <Button key={i} variant="ghost" className="w-full text-left">
-                  {s}
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
-        </section>
-      )}
-
-
-
-
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Key Competitors</h4>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {getCompetitorsForArea(selectedCompetitiveArea.area).map((competitor, index) => (
+                    <div key={index} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h5 className="font-semibold text-sm">{competitor.name}</h5>
+                          <p className="text-xs text-muted-foreground">{competitor.description}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {competitor.marketShare}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <div className="font-medium text-green-700 mb-1">Strengths</div>
+                          <div className="space-y-1">
+                            {competitor.strengths.map((strength, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                                <span className="text-muted-foreground">{strength}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="font-medium text-red-700 mb-1">Weaknesses</div>
+                          <div className="space-y-1">
+                            {competitor.weaknesses.map((weakness, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                                <span className="text-muted-foreground">{weakness}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {getCompetitorsForArea(selectedCompetitiveArea.area).length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No specific competitors identified for this area.</p>
+                    <p className="text-sm">This may indicate a new or emerging market opportunity.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

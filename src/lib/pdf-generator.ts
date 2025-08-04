@@ -1,20 +1,13 @@
-<<<<<<< HEAD
 import type { MarketGap, MVPProposal, ProductRoadmap } from './openai';
 import type { JobToBeDone, Competitor } from '@/data/jobsToBeDone';
-=======
-import type { MarketGap } from './openai';
->>>>>>> 076f79a (fixing merge changes.)
 
 export interface PDFContent {
   title: string;
   marketGaps: MarketGap[];
   totalMarketSize: string;
   generatedDate: string;
-<<<<<<< HEAD
   productRoadmap?: ProductRoadmap;
   searchQuery?: string;
-=======
->>>>>>> 076f79a (fixing merge changes.)
 }
 
 export const generateCompetitiveTechPDF = (content: PDFContent) => {
@@ -332,7 +325,6 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
           </ul>
         </div>
         
-<<<<<<< HEAD
 
         
         ${content.productRoadmap ? `
@@ -582,8 +574,6 @@ export const generateCompetitiveTechPDF = (content: PDFContent) => {
         ` : ''}
         ` : ''}
         
-=======
->>>>>>> 076f79a (fixing merge changes.)
         <div class="footer">
           <p><strong>Generated on:</strong> ${content.generatedDate}</p>
           <p><em>This analysis is based on AI-powered market intelligence and should be validated with additional market research before making strategic decisions.</em></p>
