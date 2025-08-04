@@ -245,138 +245,20 @@ const Index: FC = () => {
           )}
         </section>
 
-        {/* Results Section - Only show after search */}
-        {hasSearched && (
-          <>
-            {/* Stats */}
-            <section className="grid md:grid-cols-4 gap-6 max-w-4xl mx-auto mb-16">
-              <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
-                <Target className="h-6 w-6 text-apple-blue mx-auto" />
-                <p className="mt-2 text-2xl font-bold text-center">{totalCount}</p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Opportunities
-                </p>
-              </Card>
-              <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
-                <TrendingUp className="h-6 w-6 text-apple-green mx-auto" />
-                <p className="mt-2 text-2xl font-bold text-center">
-                  ${jobsToBeDone
-                    .reduce(
-                      (sum, j) => sum + parseFloat(j.marketSize.replace(/[^0-9.]/g, '')),
-                      0
-                    )
-                    .toFixed(1)}
-                  B
-                </p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Market Value
-                </p>
-              </Card>
-              <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
-                <DollarSign className="h-6 w-6 text-apple-orange mx-auto" />
-                <p className="mt-2 text-2xl font-bold text-center">
-                  $
-                  {(
-                    jobsToBeDone.reduce(
-                      (sum, j) =>
-                        sum + parseFloat(j.profitPotential.revenue.replace(/[^0-9.]/g, '')),
-                      0
-                    ) / totalCount
-                  ).toFixed(0)}
-                  M
-                </p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Avg Revenue
-                </p>
-              </Card>
-              <Card className="p-6 bg-white/80 backdrop-blur-sm shadow-card">
-                <Lightbulb className="h-6 w-6 text-primary mx-auto" />
-                <p className="mt-2 text-2xl font-bold text-center">
-                  {industries.length}
-                </p>
-                <p className="text-sm text-muted-foreground text-center">
-                  Industries
-                </p>
-              </Card>
-            </section>
-
-            {/* Tabs */}
-            <section className="px-4">
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="max-w-7xl mx-auto"
-              >
-                <TabsList className={`grid mb-8 ${hasSearched ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  <TabsTrigger value="opportunities">
-                    Opportunities
-                    {isShowingSearchResults && <Badge>{resultsCount}</Badge>}
-                  </TabsTrigger>
-                  {hasSearched && (
-                    <TabsTrigger value="insights">
-                      AI Insights
-                      {searchAnalysis?.marketGaps?.length ? (
-                        <Badge>{searchAnalysis.marketGaps.length}</Badge>
-                      ) : null}
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-
-                {/* Opportunities Tab */}
-                <TabsContent value="opportunities">
-                  {industryInsights.length > 0 && (
-                    <section className="mb-8">
-                      <h2 className="text-2xl font-semibold mb-4">
-                        Industry Overviews
-                      </h2>
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {industryInsights.map(insight => (
-                          <Card
-                            key={insight.industry}
-                            className="p-6 bg-white/90 shadow-card"
-                          >
-                            <h3 className="text-xl font-bold mb-2">
-                              {insight.industry}
-                            </h3>
-                            <p className="text-sm mb-1">
-                              Leading: {insight.leadingCompanies.join(', ')}
-                            </p>
-                            <p className="text-sm mb-2">
-                              Unsolved: {insight.unsolvedJobs.length}
-                            </p>
-                            <p className="font-medium">
-                              Revenue: ${insight.revenuePotential.toFixed(0)}M
-                            </p>
-                          </Card>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredJobs.map(job => (
-                      <JobCard key={job.id} job={job} onClick={setSelectedJob} />
-                    ))}
-                  </div>
-                </TabsContent>
-
-                {/* Insights Tab */}
-                {hasSearched && (
-                  <TabsContent value="insights">
-                    <MarketInsights
-                      marketGaps={searchAnalysis?.marketGaps || []}
-                      competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
-                      allJobs={jobsToBeDone}
-                      relevantJobs={searchAnalysis?.relevantOpportunities || []}
-                      searchQuery={lastSearchQuery}
-                      onGapClick={() => {}}
-                      onCompetitiveAreaClick={() => {}}
-                      {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}
-                    />
-                  </TabsContent>
-                )}
-              </Tabs>
-            </section>
-          </>
+        {/* AI Insights Section - Only show after search */}
+        {hasSearched && searchAnalysis && (
+          <section className="px-4 max-w-7xl mx-auto">
+            <MarketInsights
+              marketGaps={searchAnalysis?.marketGaps || []}
+              competitiveAnalysis={searchAnalysis?.competitiveAnalysis || { oversaturatedAreas: [], underservedAreas: [], emergingTrends: [], riskFactors: [] }}
+              allJobs={jobsToBeDone}
+              relevantJobs={searchAnalysis?.relevantOpportunities || []}
+              searchQuery={lastSearchQuery}
+              onGapClick={() => {}}
+              onCompetitiveAreaClick={() => {}}
+              {...(showingAllOpportunities && searchAnalysis?.searchSuggestion ? { searchSuggestion: searchAnalysis.searchSuggestion } : {})}
+            />
+          </section>
         )}
 
         {/* Modals */}
