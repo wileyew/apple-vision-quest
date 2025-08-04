@@ -45,7 +45,6 @@ interface MarketInsightsProps {
   searchSuggestion?: string | null;
   allJobs?: JobToBeDone[];
   relevantJobs?: JobToBeDone[];
-  searchQuery?: string;
   onGapClick?: (gap: MarketGap) => void;
   onCompetitiveAreaClick?: (
     area: string,
@@ -59,7 +58,6 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   searchSuggestion,
   allJobs = [],
   relevantJobs = [],
-  searchQuery = '',
   onGapClick,
   onCompetitiveAreaClick,
 }) => {
@@ -140,17 +138,27 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
   const getGapSizeColor = (s: number) =>
     s >= 8 ? 'bg-red-500' : s >= 6 ? 'bg-orange-500' : s >= 4 ? 'bg-yellow-500' : 'bg-green-500';
 
+  // Determine which sections to show based on data relevance
+  const hasMarketGaps = processedMarketGaps.length > 0;
+  const hasCompetitiveAnalysis = analysis && (
+    analysis.oversaturatedAreas?.length > 0 ||
+    analysis.underservedAreas?.length > 0 ||
+    analysis.emergingTrends?.length > 0 ||
+    analysis.riskFactors?.length > 0
+  );
+  const hasRelevantJobs = relevantJobs.length > 0;
+  const hasSearchSuggestion = searchSuggestion && searchSuggestion.trim().length > 0;
+
   // Export AI insights data as JSON
   const handleExportAIInsights = () => {
     const processedGaps = processedMarketGaps.filter(gap => typeof gap !== 'string') as MarketGap[];
     
-    if (processedGaps.length === 0) {
+    if (processedGaps.length === 0 && !hasCompetitiveAnalysis && !hasRelevantJobs) {
       alert('No AI insights available for export');
       return;
     }
 
     const aiInsightsData = {
-      searchQuery,
       generatedDate: new Date().toISOString(),
       marketGaps: processedGaps,
       competitiveAnalysis: analysis,
@@ -198,7 +206,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
     try {
       const productRoadmap = await generateUnsolvedProblemsRoadmap(
         processedGaps, 
-        searchQuery, 
+        'Market Research Query', 
         relevantJobs, 
         relevantJobs.flatMap(job => job.competitors)
       );
@@ -213,8 +221,7 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         marketGaps: processedGaps,
         totalMarketSize: `$${totalMarketSize.toFixed(1)}B`,
         generatedDate: new Date().toLocaleDateString(),
-        productRoadmap,
-        searchQuery
+        productRoadmap
       };
 
       try {
@@ -236,8 +243,8 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Search Suggestion */}
-      {searchSuggestion && relevantJobs.length > 0 && (
+      {/* Search Suggestion - Only show if relevant */}
+      {hasSearchSuggestion && (
         <Alert className="border-blue-200 bg-blue-50 flex items-center gap-2">
           <Lightbulb className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800">
@@ -246,8 +253,8 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </Alert>
       )}
 
-      {/* Market Gaps */}
-      {processedMarketGaps.length > 0 && (
+      {/* Market Gaps - Only show if focused on opportunities/revenue */}
+      {hasMarketGaps && (
         <section className="space-y-4">
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <Target className="h-5 w-5 text-blue-600" />
@@ -310,83 +317,8 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
         </section>
       )}
 
-      {/* Export and PDF Buttons */}
-      {processedMarketGaps.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              variant="default"
-              size="lg"
-              onClick={handleExportAIInsights}
-              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
-            >
-              <Download className="h-5 w-5" />
-              Export AI Insights Data
-            </Button>
-            <Button
-              variant="default"
-              size="lg"
-              onClick={handleGeneratePDF}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-              data-pdf-button
-            >
-              <FileText className="h-5 w-5" />
-              Get Unsolved Problems Roadmap
-            </Button>
-          </div>
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Export your AI insights as JSON data or generate a strategic product roadmap
-            </p>
-            <p className="text-xs text-orange-600 font-medium">
-              ⚠️ The roadmap contains strategic suggestions that should be adapted to your platform's specific needs
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Login Call-to-Action */}
-      {!user && (
-        <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full">
-                <Sparkles className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-purple-800 mb-2">
-                Unlock Advanced AI Product Roadmap Features
-              </h3>
-              <p className="text-sm text-purple-700 mb-4">
-                Sign in to collaborate with AI and cultivate a comprehensive product roadmap that incorporates your market research needs, competitive analysis, and strategic planning.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button
-                  variant="default"
-                  size="lg"
-                  onClick={() => window.location.href = '/login'}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
-                >
-                  <LogIn className="h-5 w-5" />
-                  Sign In to Continue
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => window.location.href = '/signup'}
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                >
-                  Create Account
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Competitive Analysis */}
-      {analysis && (
+      {/* Competitive Analysis - Only show if focused on competition/intensity */}
+      {hasCompetitiveAnalysis && (
         <section className="space-y-4">
           <h3 className="text-xl font-semibold flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-purple-600" />
@@ -494,6 +426,114 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
             )}
           </div>
         </section>
+      )}
+
+      {/* Other Research - Show for non-business focused queries */}
+      {!hasMarketGaps && !hasCompetitiveAnalysis && hasRelevantJobs && (
+        <section className="space-y-4">
+          <h3 className="text-xl font-semibold flex items-center gap-2">
+            <Search className="h-5 w-5 text-indigo-600" />
+            Research Findings
+          </h3>
+          <div className="grid gap-4">
+            {relevantJobs.map((job) => (
+              <Card key={job.id} className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold">{job.title}</h4>
+                    <p className="text-sm text-muted-foreground">{job.industry}</p>
+                  </div>
+                  <Badge variant="outline">{job.industry}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">{job.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  {job.tags.map((tag, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">{tag}</Badge>
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Export and PDF Buttons - Show if any relevant data exists */}
+      {(hasMarketGaps || hasCompetitiveAnalysis || hasRelevantJobs) && (
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleExportAIInsights}
+              className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+            >
+              <Download className="h-5 w-5" />
+              Export AI Insights Data
+            </Button>
+            {hasMarketGaps && (
+              <Button
+                variant="default"
+                size="lg"
+                onClick={handleGeneratePDF}
+                className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                data-pdf-button
+              >
+                <FileText className="h-5 w-5" />
+                Get Unsolved Problems Roadmap
+              </Button>
+            )}
+          </div>
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Export your AI insights as JSON data{hasMarketGaps && ' or generate a strategic product roadmap'}
+            </p>
+            {hasMarketGaps && (
+              <p className="text-xs text-orange-600 font-medium">
+                ⚠️ The roadmap contains strategic suggestions that should be adapted to your platform's specific needs
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Login Call-to-Action */}
+      {!user && (
+        <div className="mt-6 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="p-3 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-purple-800 mb-2">
+                Unlock Advanced AI Product Roadmap Features
+              </h3>
+              <p className="text-sm text-purple-700 mb-4">
+                Sign in to collaborate with AI and cultivate a comprehensive product roadmap that incorporates your market research needs, competitive analysis, and strategic planning.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  variant="default"
+                  size="lg"
+                  onClick={() => window.location.href = '/login'}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+                >
+                  <LogIn className="h-5 w-5" />
+                  Sign In to Continue
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => window.location.href = '/signup'}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Create Account
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Competitor Analysis Dialog */}

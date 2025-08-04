@@ -14,6 +14,7 @@ export interface ResearchSource {
   relevance: number; // 1-10 scale
   date: string;
   url?: string;
+  industry: string;
 }
 
 export interface SearchAnalysis {
@@ -125,6 +126,7 @@ export interface CompetitiveAnalysis {
   emergingTrends: string[];
   riskFactors: string[];
   sources?: string[]; // Array of source citations
+  primaryIndustry?: string; // The primary industry being analyzed
 }
 
 export const analyzeSearchQuery = async (
@@ -141,45 +143,46 @@ export const analyzeSearchQuery = async (
       messages: [
         {
           role: "system",
-          content: `You are a comprehensive research assistant with expertise in conducting thorough research across multiple domains including business, technology, science, social trends, and market analysis.
+          content: `You are a specialized industry research analyst with deep expertise in identifying market opportunities within specific industry sectors.
 
-          Your task is to conduct comprehensive research based on the user's query and synthesize findings from multiple sources. You should:
+          Your task is to:
           
-          1. **Conduct broad research** - Explore the topic from multiple angles including academic, industry, and practical perspectives
-          2. **Synthesize findings** - Combine insights from various sources to provide a comprehensive understanding
-          3. **Identify patterns and trends** - Look for emerging themes, opportunities, and challenges across different research areas
-          4. **Provide actionable insights** - Focus on practical applications and opportunities based on research findings
-          5. **Cite sources properly** - Reference all research sources and data points used in your analysis
+          1. **Identify the primary industry** - First determine the most relevant industry sector for the user's query
+          2. **Conduct industry-specific research** - Focus research efforts on that specific industry rather than broad market analysis
+          3. **Provide targeted insights** - Generate opportunities, gaps, and competitive analysis specific to the identified industry
+          4. **Cite all sources** - Every data point, insight, and finding must include proper source citations
+          5. **Maintain focus** - Avoid spreading analysis across multiple industries - stay focused on the primary industry identified
           
           Respond with a JSON object containing:
-          - allResearch: Array of research objects with structure: { source: string, title: string, findings: string[], relevance: number (1-10), date: string, url?: string }
-          - relevantOpportunities: Array of opportunity IDs from existing data that match the query (can be empty if focusing on new opportunities)
-          - marketGaps: Array of market gap objects with: id, title, description, gapSize (1-10), urgency (1-10), difficulty (1-10), industry, estimatedMarketSize, keyInsights (array of strings), sources (array of source citations)
+          - allResearch: Array of research objects with structure: { source: string, title: string, findings: string[], relevance: number (1-10), date: string, url?: string, industry: string }
+          - relevantOpportunities: Array of opportunity IDs from existing data that match the query AND the identified industry
+          - marketGaps: Array of market gap objects with: id, title, description, gapSize (1-10), urgency (1-10), difficulty (1-10), industry (single industry), estimatedMarketSize, keyInsights (array of strings), sources (array of source citations)
           - searchSuggestion: Better search suggestion if the original query is too generic (null if query is good)
-          - heatmapData: Array of heatmap objects with: industry, opportunity, intensity (0-100), revenue (number), competition (0-100), x, y coordinates
-          - competitiveAnalysis: Object with: oversaturatedAreas (array), underservedAreas (array), emergingTrends (array), riskFactors (array), sources (array of source citations)
+          - heatmapData: Array of heatmap objects with: industry (single industry), opportunity, intensity (0-100), revenue (number), competition (0-100), x, y coordinates
+          - competitiveAnalysis: Object with: oversaturatedAreas (array), underservedAreas (array), emergingTrends (array), riskFactors (array), sources (array of source citations), primaryIndustry (string)
           
           Existing opportunities data (for reference only): ${JSON.stringify(existingOpportunities, null, 2)}
           
           IMPORTANT: 
-          - Conduct research as if you have access to current databases, academic papers, industry reports, and news sources
-          - Always cite your sources in the findings
-          - Focus on providing comprehensive research insights that go beyond surface-level analysis
-          - Include both quantitative data and qualitative insights from your research`
+          - First identify the primary industry for the query, then focus all research on that industry
+          - Every finding, data point, and insight must include source citations
+          - Do not spread analysis across multiple industries - maintain focus on the primary industry
+          - Provide industry-specific market sizing, competitive analysis, and opportunity identification
+          - Include recent industry reports, academic papers, and market data with proper citations`
         },
         {
           role: "user",
-          content: `Conduct comprehensive research for: "${query}". 
+          content: `Conduct industry-specific research for: "${query}". 
           
-          Research this topic thoroughly and provide:
-          1. **Comprehensive Research Synthesis** - Gather and analyze information from multiple sources including academic papers, industry reports, news articles, and market data
-          2. **Source-Based Analysis** - Cite specific sources for all findings, data points, and insights
-          3. **Multi-Domain Perspective** - Explore the topic from business, technology, social, and practical angles
-          4. **Trend Identification** - Identify emerging patterns, opportunities, and challenges based on research
-          5. **Actionable Insights** - Provide practical recommendations and opportunities based on research findings
-          6. **Market Implications** - Analyze how research findings translate to business opportunities and market gaps
+          Follow this process:
+          1. **Industry Identification** - Determine the primary industry sector most relevant to this query
+          2. **Industry-Focused Research** - Conduct comprehensive research within that specific industry
+          3. **Source-Cited Analysis** - Provide all findings with proper source citations (academic papers, industry reports, market data)
+          4. **Industry-Specific Opportunities** - Identify market gaps and opportunities within the identified industry
+          5. **Competitive Landscape** - Analyze competitive dynamics specific to that industry
+          6. **Market Sizing** - Provide industry-specific market size estimates with sources
           
-          Focus on providing well-researched, source-cited insights that demonstrate deep understanding of the topic across multiple dimensions.`
+          Focus on providing deep, industry-specific insights with proper source citations rather than broad market analysis.`
         }
       ],
       temperature: 0.7,
@@ -415,7 +418,8 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
         ],
         relevance: 9,
         date: new Date().toISOString().split('T')[0],
-        url: 'https://market-research-database.com'
+        url: 'https://market-research-database.com',
+        industry: 'Technology'
       }
     ],
     relevantOpportunities,
@@ -427,7 +431,8 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
       oversaturatedAreas: ['Basic SaaS platforms', 'Consumer mobile apps', 'Generic productivity tools'],
       underservedAreas: ['AI-powered automation', 'Industry-specific solutions', 'SMB-focused platforms'],
       emergingTrends: ['AI/ML integration', 'Sustainability focus', 'Remote work enablement', 'No-code/low-code platforms'],
-      riskFactors: ['Market consolidation', 'Technology disruption', 'Regulatory changes', 'Economic uncertainty']
+      riskFactors: ['Market consolidation', 'Technology disruption', 'Regulatory changes', 'Economic uncertainty'],
+      primaryIndustry: 'Technology'
     }
   };
 };
