@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { MarketInsights } from '@/components/MarketInsights';
 import { IndustryDrillDown } from '@/components/IndustryDrillDown';
 import { TechnologyDrillDown } from '@/components/TechnologyDrillDown';
+import { MarketResearchBuilder } from '@/components/MarketResearchBuilder';
 import { jobsToBeDone, JobToBeDone, industries, tags } from '@/data/jobsToBeDone';
 import { analyzeSearchQuery, type SearchAnalysis, type MarketGap, type HeatmapData } from '@/lib/openai';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ const Index: FC = () => {
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('opportunities');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [showResearchBuilder, setShowResearchBuilder] = useState<boolean>(false);
   const [selectedGap, setSelectedGap] = useState<MarketGap | null>(null);
   const [selectedIndustryDrillDown, setSelectedIndustryDrillDown] = useState<string | null>(null);
   const [selectedTechnologyDrillDown, setSelectedTechnologyDrillDown] = useState<string | null>(null);
@@ -100,20 +102,20 @@ const Index: FC = () => {
     }
   }, [hasSearched, activeTab]);
 
-  // Check if user has exceeded query limit
-  const hasExceededQueryLimit = !user && queryCount >= 1;
+  // Check if user has exceeded query limit (DISABLED FOR LOCAL DEBUGGING)
+  const hasExceededQueryLimit = false; // !user && queryCount >= 1;
 
   // Search handler
   const handleSearch = async (query: string) => {
-    // Check if user has exceeded query limit
-    if (hasExceededQueryLimit) {
-      toast({
-        variant: 'destructive',
-        title: 'Query limit reached',
-        description: 'Please sign up or sign in to continue using AI-powered search.',
-      });
-      return;
-    }
+    // Check if user has exceeded query limit (DISABLED FOR LOCAL DEBUGGING)
+    // if (hasExceededQueryLimit) {
+    //   toast({
+    //     variant: 'destructive',
+    //     title: 'Query limit reached',
+    //     description: 'Please sign up or sign in to continue using AI-powered search.',
+    //   });
+    //   return;
+    // }
 
     // Clear previous industry cards immediately
     setSearchAnalysis(prev => (prev ? { ...prev, heatmapData: [] } : null));
@@ -127,12 +129,12 @@ const Index: FC = () => {
       const hasHeat = !!analysis.heatmapData?.length;
       const hasGaps = !!analysis.marketGaps?.length;
 
-      // Increment query count for non-logged-in users
-      if (!user) {
-        const newQueryCount = queryCount + 1;
-        setQueryCount(newQueryCount);
-        localStorage.setItem('anonymousQueryCount', newQueryCount.toString());
-      }
+      // Increment query count for non-logged-in users (DISABLED FOR LOCAL DEBUGGING)
+      // if (!user) {
+      //   const newQueryCount = queryCount + 1;
+      //   setQueryCount(newQueryCount);
+      //   localStorage.setItem('anonymousQueryCount', newQueryCount.toString());
+      // }
 
       if (!analysis.relevantOpportunities?.length && !hasHeat && !hasGaps) {
         toast({
@@ -215,10 +217,10 @@ const Index: FC = () => {
           </p>
         </section>
         <section className="max-w-4xl mx-auto mb-16">
-          <SearchBar onSearch={handleSearch} isLoading={isSearching} disabled={hasExceededQueryLimit} />
+          <SearchBar onSearch={handleSearch} isLoading={isSearching} disabled={false} />
           
-          {/* Query limit indicator for non-logged-in users */}
-          {!user && (
+          {/* Query limit indicator for non-logged-in users (DISABLED FOR LOCAL DEBUGGING) */}
+          {/* {!user && (
             <div className="mt-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg">
               <div className="flex items-center gap-3">
                 <Lock className="h-5 w-5 text-orange-600" />
@@ -243,6 +245,28 @@ const Index: FC = () => {
                 </Button>
               </div>
             </div>
+          )} */}
+        </section>
+
+        {/* Research Builder Section */}
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Advanced Market Research
+            </h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Build custom research queries with our drag & drop interface
+            </p>
+            <Button
+              onClick={() => setShowResearchBuilder(!showResearchBuilder)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+            >
+              {showResearchBuilder ? 'Hide Research Builder' : 'Open Research Builder'}
+            </Button>
+          </div>
+          
+          {showResearchBuilder && (
+            <MarketResearchBuilder />
           )}
         </section>
 

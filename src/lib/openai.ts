@@ -15,6 +15,11 @@ export interface ResearchSource {
   date: string;
   url?: string;
   industry: string;
+  methodology: string;
+  sampleSize?: string;
+  confidenceLevel: string;
+  keyMetrics: string[];
+  limitations: string[];
 }
 
 export interface SearchAnalysis {
@@ -24,6 +29,10 @@ export interface SearchAnalysis {
   searchSuggestion: string | null;
   heatmapData: HeatmapData[];
   competitiveAnalysis: CompetitiveAnalysis;
+  marketTrends?: MarketTrend[];
+  customerInsights?: CustomerInsight[];
+  technologyLandscape?: TechnologyLandscape;
+  regulatoryEnvironment?: RegulatoryEnvironment;
 }
 
 export interface MVPProposal {
@@ -108,6 +117,15 @@ export interface MarketGap {
   estimatedMarketSize: string;
   keyInsights: string[];
   sources?: string[]; // Array of source citations
+  marketDrivers: string[];
+  barriers: string[];
+  customerSegments: string[];
+  technologyRequirements: string[];
+  regulatoryConsiderations: string[];
+  timeline: string;
+  investmentRequired: string;
+  riskFactors: string[];
+  successMetrics: string[];
 }
 
 export interface HeatmapData {
@@ -118,6 +136,10 @@ export interface HeatmapData {
   competition: number;
   x: number;
   y: number;
+  growthRate: string;
+  marketMaturity: string;
+  technologyReadiness: string;
+  customerAdoption: string;
 }
 
 export interface CompetitiveAnalysis {
@@ -127,6 +149,50 @@ export interface CompetitiveAnalysis {
   riskFactors: string[];
   sources?: string[]; // Array of source citations
   primaryIndustry?: string; // The primary industry being analyzed
+  marketShareDistribution: object;
+  competitiveLandscape: object;
+  entryBarriers: string[];
+  competitiveAdvantages: string[];
+  partnershipOpportunities: string[];
+  acquisitionTargets: string[];
+}
+
+export interface MarketTrend {
+  trend: string;
+  description: string;
+  impact: 'high' | 'medium' | 'low';
+  timeline: string;
+  drivers: string[];
+  implications: string[];
+  sources: string[];
+}
+
+export interface CustomerInsight {
+  segment: string;
+  painPoints: string[];
+  needs: string[];
+  preferences: string[];
+  willingnessToPay: string;
+  decisionFactors: string[];
+  sources: string[];
+}
+
+export interface TechnologyLandscape {
+  currentTechnologies: string[];
+  emergingTechnologies: string[];
+  technologyGaps: string[];
+  integrationChallenges: string[];
+  technologyPartners: string[];
+  sources: string[];
+}
+
+export interface RegulatoryEnvironment {
+  currentRegulations: string[];
+  upcomingChanges: string[];
+  complianceRequirements: string[];
+  regulatoryBodies: string[];
+  impact: string;
+  sources: string[];
 }
 
 export const analyzeSearchQuery = async (
@@ -153,13 +219,110 @@ export const analyzeSearchQuery = async (
           4. **Cite all sources** - Every data point, insight, and finding must include proper source citations
           5. **Maintain focus** - Avoid spreading analysis across multiple industries - stay focused on the primary industry identified
           
-          Respond with a JSON object containing:
-          - allResearch: Array of research objects with structure: { source: string, title: string, findings: string[], relevance: number (1-10), date: string, url?: string, industry: string }
+          Respond with a comprehensive JSON object containing deep research results:
+          
+          - allResearch: Array of detailed research objects with structure: { 
+              source: string, 
+              title: string, 
+              findings: string[], 
+              relevance: number (1-10), 
+              date: string, 
+              url?: string, 
+              industry: string,
+              methodology: string,
+              sampleSize?: string,
+              confidenceLevel: string,
+              keyMetrics: string[],
+              limitations: string[]
+            }
+          
           - relevantOpportunities: Array of opportunity IDs from existing data that match the query AND the identified industry
-          - marketGaps: Array of market gap objects with: id, title, description, gapSize (1-10), urgency (1-10), difficulty (1-10), industry (single industry), estimatedMarketSize, keyInsights (array of strings), sources (array of source citations)
+          
+          - marketGaps: Array of comprehensive market gap objects with: 
+              id, title, description, 
+              gapSize (1-10), urgency (1-10), difficulty (1-10), 
+              industry (single industry), 
+              estimatedMarketSize, 
+              keyInsights (array of strings), 
+              sources (array of source citations),
+              marketDrivers: string[],
+              barriers: string[],
+              customerSegments: string[],
+              technologyRequirements: string[],
+              regulatoryConsiderations: string[],
+              timeline: string,
+              investmentRequired: string,
+              riskFactors: string[],
+              successMetrics: string[]
+            }
+          
           - searchSuggestion: Better search suggestion if the original query is too generic (null if query is good)
-          - heatmapData: Array of heatmap objects with: industry (single industry), opportunity, intensity (0-100), revenue (number), competition (0-100), x, y coordinates
-          - competitiveAnalysis: Object with: oversaturatedAreas (array), underservedAreas (array), emergingTrends (array), riskFactors (array), sources (array of source citations), primaryIndustry (string)
+          
+          - heatmapData: Array of detailed heatmap objects with: 
+              industry (single industry), 
+              opportunity, 
+              intensity (0-100), 
+              revenue (number), 
+              competition (0-100), 
+              x, y coordinates,
+              growthRate: string,
+              marketMaturity: string,
+              technologyReadiness: string,
+              customerAdoption: string
+            }
+          
+          - competitiveAnalysis: Object with: 
+              oversaturatedAreas (array), 
+              underservedAreas (array), 
+              emergingTrends (array), 
+              riskFactors (array), 
+              sources (array of source citations), 
+              primaryIndustry (string),
+              marketShareDistribution: object,
+              competitiveLandscape: object,
+              entryBarriers: string[],
+              competitiveAdvantages: string[],
+              partnershipOpportunities: string[],
+              acquisitionTargets: string[]
+            }
+          
+          - marketTrends: Array of trend objects with:
+              trend: string,
+              description: string,
+              impact: 'high' | 'medium' | 'low',
+              timeline: string,
+              drivers: string[],
+              implications: string[],
+              sources: string[]
+            }
+          
+          - customerInsights: Array of insight objects with:
+              segment: string,
+              painPoints: string[],
+              needs: string[],
+              preferences: string[],
+              willingnessToPay: string,
+              decisionFactors: string[],
+              sources: string[]
+            }
+          
+          - technologyLandscape: Object with:
+              currentTechnologies: string[],
+              emergingTechnologies: string[],
+              technologyGaps: string[],
+              integrationChallenges: string[],
+              technologyPartners: string[],
+              sources: string[]
+            }
+          
+          - regulatoryEnvironment: Object with:
+              currentRegulations: string[],
+              upcomingChanges: string[],
+              complianceRequirements: string[],
+              regulatoryBodies: string[],
+              impact: string,
+              sources: string[]
+            }
           
           Existing opportunities data (for reference only): ${JSON.stringify(existingOpportunities, null, 2)}
           
@@ -216,7 +379,16 @@ export const analyzeSearchQuery = async (
           difficulty: 5,
           industry: relevantOpportunities[0]?.industry || 'Technology',
           estimatedMarketSize: '$2.5B',
-          keyInsights: ['Growing market demand', 'Technology enablers available']
+          keyInsights: ['Growing market demand', 'Technology enablers available'],
+          marketDrivers: ['Digital transformation', 'Customer demand', 'Technology advancement'],
+          barriers: ['High initial investment', 'Market competition', 'Regulatory compliance'],
+          customerSegments: ['Enterprise businesses', 'Mid-market companies', 'Technology startups'],
+          technologyRequirements: ['Cloud infrastructure', 'AI/ML capabilities', 'Integration APIs'],
+          regulatoryConsiderations: ['Data privacy', 'Industry standards', 'Compliance requirements'],
+          timeline: '12-18 months',
+          investmentRequired: '$500K - $2M',
+          riskFactors: ['Market adoption', 'Technology changes', 'Competitive pressure'],
+          successMetrics: ['Market penetration', 'Revenue growth', 'Customer satisfaction']
         };
       }
       return gap;
@@ -225,21 +397,30 @@ export const analyzeSearchQuery = async (
     // Generate fallback market gaps if none provided
     if (marketGaps.length === 0 && relevantOpportunities.length > 0) {
       marketGaps = [
-        {
-          id: 'gap-1',
-          title: `Enhanced ${query} Solutions`,
-          description: `Market opportunity for improved solutions in the ${query} space`,
-          gapSize: 7,
-          urgency: 6,
-          difficulty: 5,
-          industry: relevantOpportunities[0]?.industry || 'Technology',
-          estimatedMarketSize: '$2.5B',
-          keyInsights: [
-            'Limited current solutions',
-            'Growing market demand',
-            'Technology enablers available'
-          ]
-        }
+            {
+      id: 'gap-1',
+      title: `Enhanced ${query} Solutions`,
+      description: `Market opportunity for improved solutions in the ${query} space`,
+      gapSize: 7,
+      urgency: 6,
+      difficulty: 5,
+      industry: relevantOpportunities[0]?.industry || 'Technology',
+      estimatedMarketSize: '$2.5B',
+      keyInsights: [
+        'Limited current solutions',
+        'Growing market demand',
+        'Technology enablers available'
+      ],
+      marketDrivers: ['Digital transformation', 'Customer demand', 'Technology advancement'],
+      barriers: ['High initial investment', 'Market competition', 'Regulatory compliance'],
+      customerSegments: ['Enterprise businesses', 'Mid-market companies', 'Technology startups'],
+      technologyRequirements: ['Cloud infrastructure', 'AI/ML capabilities', 'Integration APIs'],
+      regulatoryConsiderations: ['Data privacy', 'Industry standards', 'Compliance requirements'],
+      timeline: '12-18 months',
+      investmentRequired: '$500K - $2M',
+      riskFactors: ['Market adoption', 'Technology changes', 'Competitive pressure'],
+      successMetrics: ['Market penetration', 'Revenue growth', 'Customer satisfaction']
+    }
       ];
     }
 
@@ -338,7 +519,11 @@ const generateFallbackHeatmapData = (opportunities: JobToBeDone[]): HeatmapData[
       revenue,
       competition: competitionScore,
       x: index % 5,
-      y: Math.floor(index / 5)
+      y: Math.floor(index / 5),
+      growthRate: '15-25% annually',
+      marketMaturity: 'Growing',
+      technologyReadiness: 'High',
+      customerAdoption: 'Early majority'
     };
   });
 };
@@ -369,7 +554,16 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
         'Growing demand for intelligent, scalable solutions',
         'Technology stack maturity enables advanced features',
         'Market consolidation creating opportunities for innovators'
-      ]
+      ],
+      marketDrivers: ['AI/ML adoption', 'Automation demand', 'Digital transformation', 'Cost optimization'],
+      barriers: ['High development costs', 'Technical complexity', 'Market competition', 'Customer adoption'],
+      customerSegments: ['Large enterprises', 'Technology companies', 'Innovation leaders'],
+      technologyRequirements: ['AI/ML platforms', 'Cloud infrastructure', 'Integration capabilities', 'Scalable architecture'],
+      regulatoryConsiderations: ['Data privacy', 'AI ethics', 'Industry compliance', 'Security standards'],
+      timeline: '18-24 months',
+      investmentRequired: '$2M - $5M',
+      riskFactors: ['Technology maturity', 'Market adoption', 'Competitive response', 'Regulatory changes'],
+      successMetrics: ['Market share', 'Customer acquisition', 'Revenue growth', 'Technology adoption']
     },
     {
       id: 'gap-2',
@@ -385,7 +579,16 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
         'Price sensitivity requires innovative pricing models',
         'Need for simplified, self-service solutions',
         'Growing SMB digital transformation demand'
-      ]
+      ],
+      marketDrivers: ['SMB digital transformation', 'Cost sensitivity', 'Simplicity demand', 'Market growth'],
+      barriers: ['Price sensitivity', 'Limited IT resources', 'Complex sales cycles', 'Market education'],
+      customerSegments: ['Small businesses', 'Medium businesses', 'Professional services', 'Retail'],
+      technologyRequirements: ['Cloud-based solutions', 'Self-service portals', 'Mobile applications', 'Integration APIs'],
+      regulatoryConsiderations: ['Data protection', 'Industry standards', 'Compliance requirements', 'Security'],
+      timeline: '12-18 months',
+      investmentRequired: '$500K - $1.5M',
+      riskFactors: ['Market education', 'Price sensitivity', 'Competition', 'Customer acquisition'],
+      successMetrics: ['Customer acquisition', 'Retention rates', 'Revenue per customer', 'Market penetration']
     },
     {
       id: 'gap-3',
@@ -401,7 +604,16 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
         'Regulatory requirements driving specialized solutions',
         'High-value, sticky customer relationships',
         'Competitive moats through domain expertise'
-      ]
+      ],
+      marketDrivers: ['Regulatory compliance', 'Industry specialization', 'High-value customers', 'Competitive moats'],
+      barriers: ['Domain expertise required', 'Regulatory complexity', 'Long sales cycles', 'High development costs'],
+      customerSegments: ['Healthcare providers', 'Financial institutions', 'Manufacturing companies', 'Government agencies'],
+      technologyRequirements: ['Compliance frameworks', 'Industry integrations', 'Security features', 'Audit capabilities'],
+      regulatoryConsiderations: ['HIPAA compliance', 'Financial regulations', 'Industry standards', 'Government requirements'],
+      timeline: '24-36 months',
+      investmentRequired: '$1M - $3M',
+      riskFactors: ['Regulatory changes', 'Domain expertise', 'Long sales cycles', 'High competition'],
+      successMetrics: ['Regulatory compliance', 'Customer retention', 'Market share', 'Revenue growth']
     }
   ];
 
@@ -419,7 +631,11 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
         relevance: 9,
         date: new Date().toISOString().split('T')[0],
         url: 'https://market-research-database.com',
-        industry: 'Technology'
+        industry: 'Technology',
+        methodology: 'Secondary research analysis with industry expert interviews',
+        confidenceLevel: 'High',
+        keyMetrics: ['Market size', 'Growth rate', 'Competition level', 'Technology adoption'],
+        limitations: ['Limited primary research data', 'Regional focus on North America']
       }
     ],
     relevantOpportunities,
@@ -432,7 +648,13 @@ const fallbackAnalysis = (query: string, opportunities: JobToBeDone[]): SearchAn
       underservedAreas: ['AI-powered automation', 'Industry-specific solutions', 'SMB-focused platforms'],
       emergingTrends: ['AI/ML integration', 'Sustainability focus', 'Remote work enablement', 'No-code/low-code platforms'],
       riskFactors: ['Market consolidation', 'Technology disruption', 'Regulatory changes', 'Economic uncertainty'],
-      primaryIndustry: 'Technology'
+      primaryIndustry: 'Technology',
+      marketShareDistribution: { 'Market Leader': '35%', 'Challengers': '45%', 'Niche Players': '20%' },
+      competitiveLandscape: { 'Established Players': 5, 'Emerging Startups': 12, 'Enterprise Solutions': 8 },
+      entryBarriers: ['High capital requirements', 'Technology expertise', 'Market relationships'],
+      competitiveAdvantages: ['Innovation speed', 'Customer focus', 'Technology stack'],
+      partnershipOpportunities: ['Technology vendors', 'System integrators', 'Industry consultants'],
+      acquisitionTargets: ['Niche players', 'Technology startups', 'Regional competitors']
     }
   };
 };
