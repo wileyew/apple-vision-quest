@@ -60,31 +60,74 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
+      console.log('Starting signup process for:', email);
+      console.log('Supabase client config:', {
+        url: supabase.supabaseUrl,
+        hasKey: !!supabase.supabaseKey,
       });
 
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
+      });
+
+      console.log('Supabase signup response:', { data, error });
+
       if (error) {
+        console.error('Supabase signup error:', error);
+        
+        // Handle specific error cases
+        let userFriendlyMessage = error.message;
+        if (error.message.includes('Invalid email')) {
+          userFriendlyMessage = 'Please enter a valid email address.';
+        } else if (error.message.includes('Password')) {
+          userFriendlyMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('rate limit')) {
+          userFriendlyMessage = 'Too many signup attempts. Please wait a moment and try again.';
+        } else if (error.message.includes('network')) {
+          userFriendlyMessage = 'Network error. Please check your connection and try again.';
+        }
+
         toast({
           variant: "destructive",
           title: "Sign up failed",
-          description: error.message,
+          description: userFriendlyMessage,
         });
-      } else {
-        toast({
-          title: "Check your email",
-          description: "We've sent you a confirmation link to complete your registration.",
-        });
+        return { error: { ...error, message: userFriendlyMessage } };
       }
 
-      return { error };
+      if (data.user && !data.session) {
+        // User created but needs email confirmation
+        console.log('User created, email confirmation required');
+        toast({
+          title: "Account created successfully!",
+          description: "Please check your email and click the confirmation link to activate your account.",
+        });
+        return { error: null };
+      }
+
+      if (data.session) {
+        // User created and automatically signed in (if email confirmation is disabled)
+        console.log('User created and signed in automatically');
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created and you're now signed in.",
+        });
+        return { error: null };
+      }
+
+      console.log('Signup completed without user or session');
+      return { error: null };
     } catch (error) {
+      console.error('Unexpected signup error:', error);
       const authError = error as AuthError;
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: authError.message,
+        description: authError.message || "An unexpected error occurred. Please try again.",
       });
       return { error: authError };
     }
