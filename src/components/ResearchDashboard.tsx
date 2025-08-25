@@ -211,71 +211,7 @@ export const ResearchDashboard: React.FC<ResearchDashboardProps> = ({
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Market Heatmap */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="w-5 h-5" />
-                  Market Heatmap
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-5 gap-2 h-48">
-                  {analysis.heatmapData.slice(0, 25).map((item, index) => (
-                    <div
-                      key={index}
-                      className="relative rounded cursor-pointer hover:scale-110 transition-transform"
-                      style={{
-                        backgroundColor: `hsl(${200 + (item.intensity * 0.6)}, 70%, ${60 + (item.intensity * 0.3)}%)`,
-                        opacity: 0.7 + (item.intensity / 100) * 0.3
-                      }}
-                      title={`${item.opportunity} - Intensity: ${item.intensity}`}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center text-xs text-white font-medium p-1 text-center">
-                        {item.opportunity.split(' ')[0]}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 text-center text-sm text-gray-600">
-                  Market opportunity intensity heatmap
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Industry Distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building className="w-5 h-5" />
-                  Industry Distribution
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {Array.from(new Set(analysis.heatmapData.map(item => item.industry))).map(industry => {
-                    const count = analysis.heatmapData.filter(item => item.industry === industry).length;
-                    const percentage = (count / analysis.heatmapData.length) * 100;
-                    return (
-                      <div key={industry} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${getIndustryColor(industry)}`} />
-                          <span className="text-sm font-medium">{industry}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Progress value={percentage} className="w-20 h-2" />
-                          <span className="text-sm text-gray-600 w-12 text-right">
-                            {percentage.toFixed(0)}%
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Market Heatmap and Industry Distribution removed */}
 
           {/* Quick Actions */}
           <Card>
