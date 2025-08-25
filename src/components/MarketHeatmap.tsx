@@ -34,7 +34,11 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
           revenue: (point.intensity || 0) * 1000000, // Convert to revenue estimate
           competition: 50, // Default competition level
           x: index % 5,
-          y: Math.floor(index / 5)
+          y: Math.floor(index / 5),
+          growthRate: 'High',
+          marketMaturity: 'Emerging',
+          technologyReadiness: 'Ready',
+          customerAdoption: 'Growing'
         };
       }
       
@@ -46,7 +50,11 @@ export const MarketHeatmap = ({ data, title = "Market Opportunity Heatmap" }: Ma
         revenue: processedPoint.revenue || 1000000,
         competition: processedPoint.competition || 50,
         x: processedPoint.x ?? (index % 5),
-        y: processedPoint.y ?? Math.floor(index / 5)
+        y: processedPoint.y ?? Math.floor(index / 5),
+        growthRate: processedPoint.growthRate || 'Medium',
+        marketMaturity: processedPoint.marketMaturity || 'Developing',
+        technologyReadiness: processedPoint.technologyReadiness || 'Ready',
+        customerAdoption: processedPoint.customerAdoption || 'Growing'
       };
       
       // Size based on revenue potential

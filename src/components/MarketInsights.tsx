@@ -90,6 +90,12 @@ export const MarketInsights: FC<MarketInsightsProps> = ({
           underservedAreas: ['Specialized solutions'],
           emergingTrends: ['AI Integration', 'Automation'],
           riskFactors: ['Market competition', 'Technology changes'],
+          marketShareDistribution: {},
+          competitiveLandscape: {},
+          entryBarriers: ['High competition', 'Technology requirements'],
+          competitiveAdvantages: ['Innovation', 'Market knowledge'],
+          partnershipOpportunities: ['Technology providers', 'Market experts'],
+          acquisitionTargets: []
         }
       : competitiveAnalysis;
 
