@@ -9,13 +9,14 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: () => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-  children?: any;
+  children: React.ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -58,12 +59,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string): Promise<{ error: AuthError | null }> => {
     try {
       console.log('Starting signup process for:', email);
       console.log('Supabase client config:', {
-        url: supabase.supabaseUrl,
-        hasKey: !!supabase.supabaseKey,
+        url: 'https://vwfjuypesbnnezdpfsul.supabase.co',
+        hasKey: true,
       });
 
       const { data, error } = await supabase.auth.signUp({
@@ -96,7 +97,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           title: "Sign up failed",
           description: userFriendlyMessage,
         });
-        return { error: { ...error, message: userFriendlyMessage } };
+        return { error };
       }
 
       if (data.user && !data.session) {
@@ -160,6 +161,52 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      console.log('Starting Google OAuth signin...');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      console.log('Google OAuth response:', { data, error });
+
+      if (error) {
+        console.error('Google OAuth error:', error);
+        toast({
+          variant: "destructive",
+          title: "Google sign in failed",
+          description: error.message || "An error occurred during Google sign in",
+        });
+        return { error };
+      }
+
+      if (data.url) {
+        // Redirect to Google OAuth
+        window.location.href = data.url;
+        return { error: null };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Unexpected Google OAuth error:', error);
+      const authError = error as AuthError;
+      toast({
+        variant: "destructive",
+        title: "Google sign in failed",
+        description: authError.message || "An unexpected error occurred. Please try again.",
+      });
+      return { error: authError };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -179,6 +226,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signUp,
     signIn,
     signOut,
+    signInWithGoogle,
   };
 
   return (
