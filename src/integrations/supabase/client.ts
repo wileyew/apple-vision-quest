@@ -2,21 +2,28 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://vwfjuypesbnnezdpfsul.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3Zmp1eXBlc2JubmV6ZHBmc3VsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3NDIwODEsImV4cCI6MjA2NzMxODA4MX0.oVWeCZI_Pzyya628lnA6FX_gwa2M95O7gPQiTaCnMSc";
+// Use environment variables with fallbacks for development
+// TODO: Replace with your actual Supabase project credentials
+// You need to create a new Supabase project at https://supabase.com
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://your-project.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "your-anon-key-here";
 
 // Validate environment variables
-if (!SUPABASE_URL) {
-  throw new Error('Missing SUPABASE_URL environment variable');
+if (!SUPABASE_URL || SUPABASE_URL === "https://your-project.supabase.co") {
+  console.error('❌ Supabase URL not configured. Please create a Supabase project and update your .env file.');
+  console.error('📖 See SUPABASE_SETUP.md for instructions.');
 }
 
-if (!SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error('Missing SUPABASE_PUBLISHABLE_KEY environment variable');
+if (!SUPABASE_PUBLISHABLE_KEY || SUPABASE_PUBLISHABLE_KEY === "your-anon-key-here") {
+  console.error('❌ Supabase API key not configured. Please update your .env file with your project credentials.');
+  console.error('📖 See SUPABASE_SETUP.md for instructions.');
 }
 
 console.log('Initializing Supabase client with:', {
   url: SUPABASE_URL,
-  hasKey: !!SUPABASE_PUBLISHABLE_KEY,
+  hasKey: !!SUPABASE_PUBLISHABLE_KEY && SUPABASE_PUBLISHABLE_KEY !== "your-anon-key-here",
+  keyLength: SUPABASE_PUBLISHABLE_KEY.length,
+  isConfigured: SUPABASE_URL !== "https://your-project.supabase.co" && SUPABASE_PUBLISHABLE_KEY !== "your-anon-key-here",
 });
 
 // Import the supabase client like this:
@@ -27,14 +34,47 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'apple-vision-quest',
+    },
+  },
 });
 
-// Test the connection
-supabase.auth.getSession().then(({ data, error }) => {
-  if (error) {
-    console.error('Supabase connection error:', error);
-  } else {
-    console.log('Supabase client initialized successfully');
+// Test the connection with better error handling
+const testConnection = async () => {
+  try {
+    console.log('Testing Supabase connection...');
+    
+    // Check if properly configured
+    if (SUPABASE_URL === "https://your-project.supabase.co" || SUPABASE_PUBLISHABLE_KEY === "your-anon-key-here") {
+      console.error('❌ Supabase not properly configured. Please follow the setup instructions in SUPABASE_SETUP.md');
+      return;
+    }
+    
+    // Test basic connectivity
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Supabase connection error:', error);
+      
+      // Check for specific error types
+      if (error.message.includes('fetch')) {
+        console.error('Network error - check if Supabase is accessible');
+      } else if (error.message.includes('invalid')) {
+        console.error('Authentication error - check API keys');
+      }
+    } else {
+      console.log('✅ Supabase client initialized successfully');
+      console.log('Session status:', data.session ? 'Active session' : 'No session');
+    }
+  } catch (err) {
+    console.error('Unexpected error testing Supabase connection:', err);
   }
-});
+};
+
+// Run connection test
+testConnection();

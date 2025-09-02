@@ -3,9 +3,11 @@ frontend:
   phases:
     preBuild:
       commands:
+        - echo "Installing dependencies..."
         - npm ci
     build:
       commands:
+        - echo "Building application..."
         - npm run build
   artifacts:
     baseDirectory: dist
@@ -13,4 +15,5 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - node_modules/**/* 
+      - node_modules/**/*
+      - .npm-cache/**/* 

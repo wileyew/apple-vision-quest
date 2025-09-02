@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -20,7 +21,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, testConnection } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm<LoginFormData>({
@@ -162,6 +163,25 @@ export const LoginForm = () => {
               disabled={isLoading}
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
+            </Button>
+
+            {/* Debug button for testing */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                console.log('Testing Supabase connection...');
+                const isConnected = await testConnection();
+                if (isConnected) {
+                  toast({
+                    title: "Connection Test",
+                    description: "Successfully connected to authentication service.",
+                  });
+                }
+              }}
+            >
+              Test Connection
             </Button>
           </form>
 

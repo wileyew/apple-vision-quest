@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
 
 const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -29,7 +30,7 @@ export const SignupForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [signupStatus, setSignupStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, testConnection } = useAuth();
   const navigate = useNavigate();
 
   const form = useForm<SignupFormData>({
@@ -278,13 +279,15 @@ export const SignupForm = () => {
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => {
+              onClick={async () => {
                 console.log('Testing Supabase connection...');
-                import('@/integrations/supabase/client').then(({ supabase }) => {
-                  supabase.auth.getSession().then(({ data, error }) => {
-                    console.log('Session check result:', { data, error });
+                const isConnected = await testConnection();
+                if (isConnected) {
+                  toast({
+                    title: "Connection Test",
+                    description: "Successfully connected to authentication service.",
                   });
-                });
+                }
               }}
             >
               Test Connection
